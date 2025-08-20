@@ -29,6 +29,12 @@ docs/templates/
 templates/
 *.template.*
 
+# Environment variables
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
 # Build artifacts
 .next/
 node_modules/

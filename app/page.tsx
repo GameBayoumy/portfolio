@@ -23,6 +23,10 @@ const ContactSection = dynamic(() => import('@/components/sections/contact-secti
   ssr: false
 });
 
+const GitHubVisualizersSection = dynamic(() => import('@/components/github-visualizers/GitHubVisualizersSection'), {
+  ssr: false
+});
+
 export default function Home() {
   return (
     <>
@@ -43,6 +47,10 @@ export default function Home() {
 
         <Suspense fallback={<div className="min-h-screen bg-transparent" />}>
           <ProjectsSection />
+        </Suspense>
+
+        <Suspense fallback={<div className="min-h-screen bg-transparent" />}>
+          <GitHubVisualizersSection />
         </Suspense>
 
         <Suspense fallback={<div className="min-h-screen bg-transparent" />}>
