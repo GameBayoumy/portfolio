@@ -1,11 +1,11 @@
 'use client';
 
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, memo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { ParticleSystemProps } from '@/types';
 
-export function ParticleField({
+const ParticleField = memo(function ParticleField({
   count = 200,
   spread = 10,
   speed = 0.02,
@@ -65,7 +65,7 @@ export function ParticleField({
 
   // Animation loop
   useFrame((state) => {
-    if (!meshRef.current) return;
+    if (!meshRef.current || !meshRef.current.geometry.attributes.position) return;
 
     const positions = meshRef.current.geometry.attributes.position.array as Float32Array;
     const time = state.clock.elapsedTime * animationSpeed;
@@ -106,11 +106,17 @@ export function ParticleField({
       }
     }
 
-    meshRef.current.geometry.attributes.position.needsUpdate = true;
+    try {
+      meshRef.current.geometry.attributes.position.needsUpdate = true;
+    } catch (error) {
+      console.warn('Failed to update particle positions:', error);
+    }
 
     // Rotate the entire particle system slowly
-    meshRef.current.rotation.y += 0.001 * animationSpeed;
-    meshRef.current.rotation.x += 0.0005 * animationSpeed;
+    if (meshRef.current.rotation) {
+      meshRef.current.rotation.y += 0.001 * animationSpeed;
+      meshRef.current.rotation.x += 0.0005 * animationSpeed;
+    }
   });
 
   return (
@@ -148,4 +154,6 @@ export function ParticleField({
       />
     </points>
   );
-}
+});
+
+export { ParticleField };

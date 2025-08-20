@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, memo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Mesh, Group } from 'three';
 import { Float } from '@react-three/drei';
@@ -12,7 +12,7 @@ interface MathematicalShapesProps {
   glowEffect?: boolean;
 }
 
-export function MathematicalShapes({
+const MathematicalShapes = memo(function MathematicalShapes({
   complexity = 'medium',
   animationSpeed = 1,
   glowEffect = true,
@@ -57,12 +57,13 @@ export function MathematicalShapes({
   ];
 
   useFrame((state) => {
-    if (!groupRef.current) return;
+    if (!groupRef.current || !groupRef.current.children) return;
 
     const time = state.clock.elapsedTime * animationSpeed;
 
-    groupRef.current.children.forEach((child, index) => {
-      if (child instanceof Mesh) {
+    try {
+      groupRef.current.children.forEach((child, index) => {
+        if (child instanceof Mesh && child.rotation && child.position && child.scale) {
         // Rotate each shape differently
         child.rotation.x = time * (0.5 + index * 0.1);
         child.rotation.y = time * (0.3 + index * 0.05);
@@ -76,14 +77,19 @@ export function MathematicalShapes({
         child.position.z = Math.sin(angle) * radius;
         child.position.y = Math.sin(time * 0.5 + index) * 2;
 
-        // Pulsing scale effect
-        const scale = 0.8 + Math.sin(time * 2 + index) * 0.2;
-        child.scale.setScalar(scale);
-      }
-    });
+          // Pulsing scale effect
+          const scale = 0.8 + Math.sin(time * 2 + index) * 0.2;
+          child.scale.setScalar(scale);
+        }
+      });
+    } catch (error) {
+      console.warn('Failed to animate mathematical shapes:', error);
+    }
 
     // Rotate entire group
-    groupRef.current.rotation.y += 0.002 * animationSpeed;
+    if (groupRef.current.rotation) {
+      groupRef.current.rotation.y += 0.002 * animationSpeed;
+    }
   });
 
   return (
@@ -128,10 +134,10 @@ export function MathematicalShapes({
       )}
     </group>
   );
-}
+});
 
 // Component for drawing connecting lines between shapes
-function LineConnections({
+const LineConnections = memo(function LineConnections({
   count,
   radius,
   color,
@@ -177,4 +183,6 @@ function LineConnections({
       />
     </lineSegments>
   );
-}
+});
+
+export { MathematicalShapes };

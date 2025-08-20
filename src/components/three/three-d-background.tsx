@@ -1,7 +1,7 @@
 'use client';
 
 import { Canvas } from '@react-three/fiber';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState, memo } from 'react';
 import { Stars, OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import { VRHeadsetModel } from './vr-headset-model';
 import { ParticleField } from './particle-field';
@@ -13,7 +13,7 @@ interface ThreeDBackgroundProps extends Scene3DProps {
   className?: string;
 }
 
-export default function ThreeDBackground({
+const ThreeDBackground = memo(function ThreeDBackground({
   performanceMode,
   enablePostProcessing = true,
   enableShadows = true,
@@ -37,7 +37,9 @@ export default function ThreeDBackground({
     
     // Detect performance and adjust settings
     const tier = performanceMode || performanceUtils.getPerformanceTier();
-    const settings = performanceUtils.getQualitySettings(tier);
+    // Ensure tier is valid for getQualitySettings
+    const validTier = tier === 'ultra' ? 'high' : tier;
+    const settings = performanceUtils.getQualitySettings(validTier as 'low' | 'medium' | 'high');
     
     setQualitySettings({
       ...settings,
@@ -69,15 +71,20 @@ export default function ThreeDBackground({
         shadows={qualitySettings.shadows}
         camera={{ position: [0, 0, 8], fov: 60 }}
         onCreated={({ gl, scene, camera }) => {
-          // Optimize renderer settings
-          gl.setClearColor(backgroundColor, 0.8);
-          gl.physicallyCorrectLights = true;
-          gl.outputEncoding = 3001; // sRGBEncoding
-          gl.toneMapping = 0; // NoToneMapping for better performance
-          
-          // Set initial camera position
-          camera.position.set(0, 2, 8);
-          camera.lookAt(0, 0, 0);
+          try {
+            // Optimize renderer settings
+            gl.setClearColor(backgroundColor, 0.8);
+            // Modern Three.js renderer settings
+            gl.useLegacyLights = false;
+            gl.outputColorSpace = 'srgb';
+            gl.toneMapping = 0; // NoToneMapping for better performance
+            
+            // Set initial camera position
+            camera.position.set(0, 2, 8);
+            camera.lookAt(0, 0, 0);
+          } catch (error) {
+            console.warn('Failed to initialize renderer settings:', error);
+          }
         }}
       >
         <Suspense fallback={null}>
@@ -180,4 +187,6 @@ export default function ThreeDBackground({
       </Canvas>
     </div>
   );
-}
+});
+
+export default ThreeDBackground;

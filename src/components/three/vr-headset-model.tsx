@@ -1,16 +1,16 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, memo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Mesh, Group, Vector3 } from 'three';
 import { RoundedBox, Text, Float, MeshDistortMaterial } from '@react-three/drei';
 import { useSpring, animated } from '@react-spring/three';
 import type { VRHeadsetModelProps } from '@/types';
 
-const AnimatedMesh = animated(Mesh);
-const AnimatedGroup = animated(Group);
+const AnimatedMesh = animated('mesh');
+const AnimatedGroup = animated('group');
 
-export function VRHeadsetModel({
+const VRHeadsetModel = memo(function VRHeadsetModel({
   position = [0, 0, 0],
   rotation = [0, 0, 0],
   scale = [1, 1, 1],
@@ -89,14 +89,14 @@ export function VRHeadsetModel({
       >
         <RoundedBox args={[2.5, 1.2, 1.8]} radius={0.1} smoothness={4}>
           <MeshDistortMaterial
-            color={glowColor}
+            color={glowColor as any}
             transparent
             opacity={0.9}
             distort={0.1}
             speed={2}
             roughness={0.2}
             metalness={0.8}
-            emissive={glowColor}
+            emissive={glowColor as any}
             emissiveIntensity={glowIntensity}
           />
         </RoundedBox>
@@ -196,7 +196,7 @@ export function VRHeadsetModel({
             color="#00f0ff"
             anchorX="center"
             anchorY="middle"
-            font="/fonts/inter-bold.woff2"
+            font={undefined}
           >
             XR Developer
           </Text>
@@ -206,7 +206,7 @@ export function VRHeadsetModel({
             color="#ffffff"
             anchorX="center"
             anchorY="middle"
-            font="/fonts/inter-regular.woff2"
+            font={undefined}
           >
             Click to explore VR projects
           </Text>
@@ -252,4 +252,6 @@ export function VRHeadsetModel({
       </mesh>
     </AnimatedGroup>
   );
-}
+});
+
+export { VRHeadsetModel };

@@ -9,29 +9,33 @@ export function cn(...inputs: ClassValue[]) {
 export const performanceUtils = {
   // Get device performance tier
   getPerformanceTier: (): 'low' | 'medium' | 'high' => {
-    const canvas = document.createElement('canvas');
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-    
-    if (!gl) return 'low';
-    
-    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-    const renderer = debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : '';
-    
-    // Check for discrete GPU indicators
-    const highPerformanceIndicators = ['nvidia', 'amd', 'radeon', 'geforce', 'quadro'];
-    const lowPerformanceIndicators = ['intel', 'integrated', 'software'];
-    
-    const rendererLower = renderer.toLowerCase();
-    
-    if (highPerformanceIndicators.some(indicator => rendererLower.includes(indicator))) {
-      return 'high';
+    try {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') as WebGLRenderingContext | null;
+      
+      if (!gl) return 'low';
+      
+      const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+      const renderer = debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : '';
+      
+      // Check for discrete GPU indicators
+      const highPerformanceIndicators = ['nvidia', 'amd', 'radeon', 'geforce', 'quadro'];
+      const lowPerformanceIndicators = ['intel', 'integrated', 'software'];
+      
+      const rendererLower = (renderer as string).toLowerCase();
+      
+      if (highPerformanceIndicators.some(indicator => rendererLower.includes(indicator))) {
+        return 'high';
+      }
+      
+      if (lowPerformanceIndicators.some(indicator => rendererLower.includes(indicator))) {
+        return 'low';
+      }
+      
+      return 'medium';
+    } catch (e) {
+      return 'medium';
     }
-    
-    if (lowPerformanceIndicators.some(indicator => rendererLower.includes(indicator))) {
-      return 'low';
-    }
-    
-    return 'medium';
   },
 
   // Get optimal quality settings based on device

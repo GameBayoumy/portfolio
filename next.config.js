@@ -2,6 +2,14 @@
 const nextConfig = {
   experimental: {
     optimizeCss: true,
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
   },
   images: {
     domains: ['sharifbayoumy.nl', 'github.com', 'linkedin.com'],
@@ -33,6 +41,16 @@ const nextConfig = {
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
+      };
+    }
+
+    // Improve Hot Module Replacement
+    if (!isServer && config.mode === 'development') {
+      config.optimization = {
+        ...config.optimization,
+        providedExports: false,
+        usedExports: false,
+        sideEffects: false,
       };
     }
 
