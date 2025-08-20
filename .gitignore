@@ -23,3 +23,13 @@ claude-flow
 claude-flow.bat
 claude-flow.ps1
 hive-mind-prompt-*.txt
+
+# Exclude template files that can cause build issues
+docs/templates/
+templates/
+*.template.*
+
+# Build artifacts
+.next/
+node_modules/
+tsconfig.tsbuildinfo
