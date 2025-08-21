@@ -1,0 +1,83 @@
+version: 2
+updates:
+  # Enable version updates for npm
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "GameBayoumy"
+    assignees:
+      - "GameBayoumy"
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
+    groups:
+      # Group React-related updates
+      react-ecosystem:
+        patterns:
+          - "react*"
+          - "@types/react*"
+      # Group Next.js and build tools
+      build-tools:
+        patterns:
+          - "next*"
+          - "@next/*"
+          - "typescript"
+          - "eslint*"
+          - "@typescript-eslint/*"
+          - "prettier*"
+      # Group Three.js and 3D libraries
+      threejs-ecosystem:
+        patterns:
+          - "three*"
+          - "@react-three/*"
+          - "@types/three"
+      # Group animation libraries
+      animation-libraries:
+        patterns:
+          - "framer-motion"
+          - "gsap"
+          - "@react-spring/*"
+      # Group testing and quality tools
+      dev-dependencies:
+        patterns:
+          - "*"
+        dependency-type: "development"
+    ignore:
+      # Ignore major version updates for stable dependencies
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+      # Ignore specific packages that might cause issues
+      - dependency-name: "three"
+        update-types: ["version-update:semver-major"]
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "GameBayoumy"
+    assignees:
+      - "GameBayoumy"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+
+  # Enable security updates for Docker (if you add Dockerfile later)
+  # - package-ecosystem: "docker"
+  #   directory: "/"
+  #   schedule:
+  #     interval: "weekly"

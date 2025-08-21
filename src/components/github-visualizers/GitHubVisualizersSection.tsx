@@ -3,9 +3,13 @@
 import { useGitHubStats } from '@/hooks/useGitHubStats';
 import { GitHubStatsGrid } from '@/components/github-visualizers/GitHubStatsGrid';
 import { LanguageDistribution } from '@/components/github-visualizers/LanguageDistribution';
+import { RepositoryNetwork3D } from '@/components/github-visualizers/network';
+import { ContributionHeatmap } from '@/components/github-visualizers/heatmap';
+import { ActivityTimeline } from '@/components/github-visualizers/timeline';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { Github, Activity, TrendingUp, Code2 } from 'lucide-react';
+import { useState, Suspense } from 'react';
 
 export default function GitHubVisualizersSection() {
   const { data, loading, error, refetch } = useGitHubStats();
@@ -13,6 +17,8 @@ export default function GitHubVisualizersSection() {
     threshold: 0.1,
     triggerOnce: true,
   });
+  
+  const [activeTab, setActiveTab] = useState<'overview' | 'network' | 'heatmap' | 'timeline'>('overview');
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -124,33 +130,116 @@ export default function GitHubVisualizersSection() {
                 <LanguageDistribution languages={data.languageStats} />
               </motion.div>
 
-              {/* Coming Soon Visualizations */}
-              <motion.div variants={itemVariants} className="grid md:grid-cols-3 gap-6">
-                <div className="glass-morphism p-6 rounded-xl text-center">
-                  <Activity className="w-8 h-8 text-neon-purple mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-white mb-2">Activity Timeline</h3>
-                  <p className="text-sm text-gray-400">Interactive commit history and project timeline</p>
-                  <span className="inline-block mt-3 px-3 py-1 bg-neon-purple/20 text-neon-purple text-xs rounded-full">
-                    Coming Soon
-                  </span>
+              {/* Advanced Visualizations Tabs */}
+              <motion.div variants={itemVariants} className="space-y-6">
+                {/* Tab Navigation */}
+                <div className="flex flex-wrap justify-center gap-2 p-1 bg-gray-800/50 rounded-xl">
+                  {[
+                    { id: 'overview', label: 'Overview', icon: Github },
+                    { id: 'network', label: '3D Network', icon: Code2 },
+                    { id: 'heatmap', label: 'Heatmap', icon: TrendingUp },
+                    { id: 'timeline', label: 'Timeline', icon: Activity },
+                  ].map(({ id, label, icon: Icon }) => (
+                    <button
+                      key={id}
+                      onClick={() => setActiveTab(id as any)}
+                      className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                        activeTab === id
+                          ? 'bg-neon-blue/20 text-neon-blue shadow-lg shadow-neon-blue/10'
+                          : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span>{label}</span>
+                    </button>
+                  ))}
                 </div>
 
-                <div className="glass-morphism p-6 rounded-xl text-center">
-                  <TrendingUp className="w-8 h-8 text-neon-green mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-white mb-2">Contribution Heatmap</h3>
-                  <p className="text-sm text-gray-400">GitHub-style contribution calendar with trends</p>
-                  <span className="inline-block mt-3 px-3 py-1 bg-neon-green/20 text-neon-green text-xs rounded-full">
-                    Coming Soon
-                  </span>
-                </div>
+                {/* Tab Content */}
+                <div className="min-h-[400px]">
+                  {activeTab === 'overview' && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="grid md:grid-cols-3 gap-6"
+                    >
+                      <div className="glass-morphism p-6 rounded-xl text-center">
+                        <Activity className="w-8 h-8 text-neon-purple mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-white mb-2">Activity Timeline</h3>
+                        <p className="text-sm text-gray-400">Interactive commit history and project timeline</p>
+                        <button 
+                          onClick={() => setActiveTab('timeline')}
+                          className="inline-block mt-3 px-3 py-1 bg-neon-purple/20 text-neon-purple text-xs rounded-full hover:bg-neon-purple/30 transition-colors"
+                        >
+                          View Timeline
+                        </button>
+                      </div>
 
-                <div className="glass-morphism p-6 rounded-xl text-center">
-                  <Code2 className="w-8 h-8 text-neon-pink mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-white mb-2">3D Repository Network</h3>
-                  <p className="text-sm text-gray-400">Interactive 3D visualization of repository connections</p>
-                  <span className="inline-block mt-3 px-3 py-1 bg-neon-pink/20 text-neon-pink text-xs rounded-full">
-                    Coming Soon
-                  </span>
+                      <div className="glass-morphism p-6 rounded-xl text-center">
+                        <TrendingUp className="w-8 h-8 text-neon-green mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-white mb-2">Contribution Heatmap</h3>
+                        <p className="text-sm text-gray-400">GitHub-style contribution calendar with trends</p>
+                        <button 
+                          onClick={() => setActiveTab('heatmap')}
+                          className="inline-block mt-3 px-3 py-1 bg-neon-green/20 text-neon-green text-xs rounded-full hover:bg-neon-green/30 transition-colors"
+                        >
+                          View Heatmap
+                        </button>
+                      </div>
+
+                      <div className="glass-morphism p-6 rounded-xl text-center">
+                        <Code2 className="w-8 h-8 text-neon-pink mx-auto mb-4" />
+                        <h3 className="text-lg font-semibold text-white mb-2">3D Repository Network</h3>
+                        <p className="text-sm text-gray-400">Interactive 3D visualization of repository connections</p>
+                        <button 
+                          onClick={() => setActiveTab('network')}
+                          className="inline-block mt-3 px-3 py-1 bg-neon-pink/20 text-neon-pink text-xs rounded-full hover:bg-neon-pink/30 transition-colors"
+                        >
+                          View Network
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {activeTab === 'network' && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="glass-morphism p-6 rounded-xl"
+                    >
+                      <Suspense fallback={
+                        <div className="flex items-center justify-center h-96">
+                          <div className="text-gray-400">Loading 3D visualization...</div>
+                        </div>
+                      }>
+                        <RepositoryNetwork3D repositories={data.repositories} />
+                      </Suspense>
+                    </motion.div>
+                  )}
+
+                  {activeTab === 'heatmap' && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="glass-morphism p-6 rounded-xl"
+                    >
+                      <ContributionHeatmap />
+                    </motion.div>
+                  )}
+
+                  {activeTab === 'timeline' && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="glass-morphism p-6 rounded-xl"
+                    >
+                      <ActivityTimeline repositories={data.repositories} />
+                    </motion.div>
+                  )}
                 </div>
               </motion.div>
 

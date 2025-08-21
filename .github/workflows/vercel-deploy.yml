@@ -1,0 +1,257 @@
+name: Vercel Deployment
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  NODE_VERSION: '18.17.0'
+  NEXT_TELEMETRY_DISABLED: 1
+
+jobs:
+  # Job 1: Deploy Preview (PR only)
+  deploy-preview:
+    name: Deploy Preview
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    environment: preview
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project Artifacts
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          NODE_ENV: production
+
+      - name: Deploy Project Artifacts to Vercel
+        id: deploy
+        run: |
+          DEPLOYMENT_URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "DEPLOYMENT_URL=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "Preview deployment: $DEPLOYMENT_URL"
+
+      - name: Update PR with deployment URL
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Preview Deployment')
+            );
+
+            const body = `## 🚀 Preview Deployment
+            
+            **Status**: ✅ Deployed successfully
+            **URL**: [${{ steps.deploy.outputs.DEPLOYMENT_URL }}](${{ steps.deploy.outputs.DEPLOYMENT_URL }})
+            **Commit**: ${context.sha.substring(0, 7)}
+            **Environment**: Preview
+            
+            ---
+            
+            **📊 Deployment Details:**
+            - **Framework**: Next.js 14
+            - **Node Version**: ${{ env.NODE_VERSION }}
+            - **Build Time**: ${new Date().toISOString()}
+            
+            **🔗 Quick Links:**
+            - [Vercel Dashboard](https://vercel.com/dashboard)
+            - [Performance Metrics](${{ steps.deploy.outputs.DEPLOYMENT_URL }}/_vercel/insights)
+            
+            > This preview will be updated automatically when you push new commits to this PR.`;
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
+      - name: Run Lighthouse CI on Preview
+        uses: treosh/lighthouse-ci-action@v10
+        with:
+          urls: |
+            ${{ steps.deploy.outputs.DEPLOYMENT_URL }}
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+
+  # Job 2: Deploy Production (main branch only)
+  deploy-production:
+    name: Deploy Production
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    needs: []
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project Artifacts
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          NODE_ENV: production
+
+      - name: Deploy Project Artifacts to Vercel
+        id: deploy
+        run: |
+          DEPLOYMENT_URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "DEPLOYMENT_URL=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "Production deployment: $DEPLOYMENT_URL"
+
+      - name: Assign production domain
+        run: vercel alias set ${{ steps.deploy.outputs.DEPLOYMENT_URL }} ${{ secrets.VERCEL_PRODUCTION_DOMAIN }} --token=${{ secrets.VERCEL_TOKEN }}
+        if: secrets.VERCEL_PRODUCTION_DOMAIN != ''
+
+      - name: Create deployment summary
+        run: |
+          echo "## 🚀 Production Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status**: ✅ Successfully deployed to production" >> $GITHUB_STEP_SUMMARY
+          echo "**URL**: [${{ steps.deploy.outputs.DEPLOYMENT_URL }}](${{ steps.deploy.outputs.DEPLOYMENT_URL }})" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit**: ${GITHUB_SHA:0:7}" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment**: Production" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed at**: $(date -u)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify deployment status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: 'success',
+              description: 'Production deployment successful',
+              context: 'vercel/production',
+              target_url: '${{ steps.deploy.outputs.DEPLOYMENT_URL }}'
+            });
+
+  # Job 3: Post-deployment validation
+  post-deployment-validation:
+    name: Post-deployment Validation
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Health check
+        run: |
+          DEPLOYMENT_URL="${{ needs.deploy-production.outputs.DEPLOYMENT_URL }}"
+          
+          # Wait for deployment to be ready
+          echo "Waiting for deployment to be ready..."
+          sleep 30
+          
+          # Perform health check
+          response=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOYMENT_URL")
+          
+          if [ "$response" = "200" ]; then
+            echo "✅ Health check passed (HTTP $response)"
+          else
+            echo "❌ Health check failed (HTTP $response)"
+            exit 1
+          fi
+
+      - name: Performance audit
+        run: |
+          npm install -g lighthouse
+          
+          # Run lighthouse audit
+          lighthouse "${{ needs.deploy-production.outputs.DEPLOYMENT_URL }}" \
+            --output=json \
+            --output-path=lighthouse-report.json \
+            --chrome-flags="--headless --no-sandbox"
+          
+          # Extract performance score
+          PERF_SCORE=$(node -e "
+            const report = require('./lighthouse-report.json');
+            console.log(Math.round(report.lhr.categories.performance.score * 100));
+          ")
+          
+          echo "Performance Score: $PERF_SCORE/100"
+          
+          if [ "$PERF_SCORE" -lt 80 ]; then
+            echo "⚠️ Performance score below threshold (80)"
+          else
+            echo "✅ Performance score above threshold"
+          fi
+
+      - name: Upload lighthouse report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-report-production
+          path: lighthouse-report.json
+          retention-days: 30
+
+  # Job 4: Rollback (manual trigger)
+  rollback:
+    name: Rollback Deployment
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    environment: production
+    
+    steps:
+      - name: Setup Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: List recent deployments
+        run: |
+          vercel ls --token=${{ secrets.VERCEL_TOKEN }} | head -10
+
+      - name: Rollback to previous deployment
+        run: |
+          # Get the second most recent deployment (previous stable)
+          PREVIOUS_DEPLOYMENT=$(vercel ls --token=${{ secrets.VERCEL_TOKEN }} | sed -n '3p' | awk '{print $2}')
+          
+          echo "Rolling back to: $PREVIOUS_DEPLOYMENT"
+          
+          # Promote previous deployment to production
+          vercel alias set "$PREVIOUS_DEPLOYMENT" "${{ secrets.VERCEL_PRODUCTION_DOMAIN }}" --token=${{ secrets.VERCEL_TOKEN }}
+          
+          echo "✅ Rollback completed"

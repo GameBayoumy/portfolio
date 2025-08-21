@@ -75,7 +75,7 @@ const ThreeDBackground = memo(function ThreeDBackground({
             // Optimize renderer settings
             gl.setClearColor(backgroundColor, 0.8);
             // Modern Three.js renderer settings
-            gl.useLegacyLights = false;
+            // gl.useLegacyLights = false; // Deprecated property
             gl.outputColorSpace = 'srgb';
             gl.toneMapping = 0; // NoToneMapping for better performance
             

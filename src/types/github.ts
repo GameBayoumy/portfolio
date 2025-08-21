@@ -257,3 +257,249 @@ export interface RateLimitInfo {
   reset: number;
   used: number;
 }
+
+// 3D Network Visualization Types
+export interface Vector3D {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface RepositoryNode {
+  id: number;
+  name: string;
+  full_name: string;
+  size: number;
+  color: string;
+  position: Vector3D;
+  velocity: Vector3D;
+  data: GitHubRepository;
+  connections: RepositoryConnection[];
+}
+
+export interface RepositoryConnection {
+  source: number;
+  target: number;
+  type: 'fork' | 'collaboration' | 'dependency' | 'language';
+  strength: number;
+  weight?: number;
+}
+
+export interface RepositoryNetwork {
+  nodes: RepositoryNode[];
+  edges: RepositoryConnection[];
+  stats: {
+    totalNodes: number;
+    totalEdges: number;
+    clusters: number;
+    density: number;
+  };
+}
+
+// Processing and Activity Types
+export interface ProcessedGitHubEvent {
+  id: string;
+  type: string;
+  timestamp: Date;
+  repository: string;
+  repositoryUrl: string;
+  message: string;
+  icon: string;
+  color: string;
+  details: EventDetails;
+  actor: {
+    login: string;
+    avatar_url: string;
+  };
+}
+
+export interface EventDetails {
+  commits?: Array<{
+    sha: string;
+    message: string;
+    url: string;
+  }>;
+  issue?: {
+    number: number;
+    title: string;
+    url: string;
+  };
+  pullRequest?: {
+    number: number;
+    title: string;
+    url: string;
+  };
+  branch?: {
+    name: string;
+    type: string;
+  };
+  release?: {
+    tag_name: string;
+    name: string;
+    url: string;
+  };
+}
+
+// Contribution Heatmap Types
+export interface ContributionDay {
+  date: string;
+  count: number;
+  level: 0 | 1 | 2 | 3 | 4;
+  weekday: number;
+  week: number;
+}
+
+export interface ContributionYear {
+  year: number;
+  totalContributions: number;
+  weeks: ContributionWeek[];
+  range: {
+    start: string;
+    end: string;
+  };
+  contributionCalendar: {
+    colors: string[];
+    totalContributions: number;
+    weeks: ContributionWeek[];
+  };
+}
+
+export interface ContributionWeek {
+  contributionDays: ContributionDay[];
+  firstDay: string;
+  totalContributions: number;
+}
+
+// Aggregated GitHub Statistics
+export interface GitHubStats {
+  user: GitHubUser;
+  repositories: GitHubRepository[];
+  totalStars: number;
+  totalForks: number;
+  languageStats: Array<{
+    language: string;
+    bytes: number;
+    percentage: number;
+  }>;
+}
+
+// GitHub Contribution Types
+export interface ContributionDay {
+  date: string;
+  count: number;
+  level: 0 | 1 | 2 | 3 | 4;
+  weekday: number;
+  week: number;
+}
+
+export interface ContributionWeek {
+  contributionDays: ContributionDay[];
+  firstDay: string;
+  totalContributions: number;
+}
+
+export interface ContributionCalendar {
+  colors: string[];
+  totalContributions: number;
+  weeks: ContributionWeek[];
+}
+
+export interface ContributionYear {
+  year: number;
+  totalContributions: number;
+  weeks: ContributionWeek[];
+  range: {
+    start: string;
+    end: string;
+  };
+  contributionCalendar: ContributionCalendar;
+}
+
+// Event Processing Types
+export interface ProcessedGitHubEvent {
+  id: string;
+  type: string;
+  timestamp: Date;
+  repository: string;
+  repositoryUrl: string;
+  message: string;
+  icon: string;
+  color: string;
+  details: EventDetails;
+  actor: {
+    login: string;
+    avatar_url: string;
+  };
+}
+
+export interface EventDetails {
+  commits?: Array<{
+    sha: string;
+    message: string;
+    url: string;
+  }>;
+  issue?: {
+    number: number;
+    title: string;
+    url: string;
+  };
+  pullRequest?: {
+    number: number;
+    title: string;
+    url: string;
+  };
+  branch?: {
+    name: string;
+    type: string;
+  };
+  release?: {
+    tag_name: string;
+    name: string;
+    url: string;
+  };
+}
+
+// Repository Network Types
+export interface RepositoryNode {
+  id: number;
+  name: string;
+  full_name: string;
+  size: number;
+  color: string;
+  position: { x: number; y: number; z: number };
+  velocity: { x: number; y: number; z: number };
+  data: GitHubRepository;
+  connections: RepositoryConnection[];
+}
+
+export interface RepositoryConnection {
+  source: number;
+  target: number;
+  type: 'fork' | 'collaboration' | 'dependency' | 'language';
+  strength: number;
+  weight?: number;
+}
+
+export interface RepositoryNetwork {
+  nodes: RepositoryNode[];
+  edges: RepositoryConnection[];
+  stats: {
+    totalNodes: number;
+    totalEdges: number;
+    clusters: number;
+    density: number;
+  };
+}
+
+// Main GitHub Stats Interface
+export interface GitHubStats {
+  user: GitHubUser;
+  repositories: GitHubRepository[];
+  totalStars: number;
+  totalForks: number;
+  languageStats: Array<{
+    language: string;
+    bytes: number;
+    percentage: number;
+  }>;
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { GitHubStats } from '@/services/github-api';
+import { GitHubStats } from '@/types/github';
 import { motion } from 'framer-motion';
 import { Github, Star, GitFork, BookOpen, Users, Calendar, MapPin, Building2 } from 'lucide-react';
 

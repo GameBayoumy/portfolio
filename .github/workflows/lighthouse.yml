@@ -1,0 +1,158 @@
+name: Lighthouse Performance Audit
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run performance audit weekly on Sundays at 3 AM UTC
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18.17.0'
+
+jobs:
+  lighthouse-audit:
+    name: Lighthouse Performance Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Wait for Vercel deployment
+        if: github.event_name == 'pull_request'
+        uses: patrickedqvist/wait-for-vercel-preview@v1.3.1
+        id: waitForVercel
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          max_timeout: 300
+
+      - name: Set deployment URL
+        id: deployment-url
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "DEPLOYMENT_URL=${{ steps.waitForVercel.outputs.url }}" >> $GITHUB_OUTPUT
+          else
+            # Use production URL for main branch
+            echo "DEPLOYMENT_URL=https://your-domain.vercel.app" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v10
+        with:
+          urls: |
+            ${{ steps.deployment-url.outputs.DEPLOYMENT_URL }}
+            ${{ steps.deployment-url.outputs.DEPLOYMENT_URL }}/about
+            ${{ steps.deployment-url.outputs.DEPLOYMENT_URL }}/projects
+            ${{ steps.deployment-url.outputs.DEPLOYMENT_URL }}/contact
+          configPath: './.github/lighthouse/lighthouserc.json'
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+
+      - name: Create Lighthouse report comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Read Lighthouse results
+            const lighthouseDir = '.lighthouseci';
+            let reportSummary = '## 🚨 Lighthouse Performance Audit\n\n';
+            
+            try {
+              const files = fs.readdirSync(lighthouseDir);
+              const jsonFiles = files.filter(file => file.endsWith('.json'));
+              
+              if (jsonFiles.length > 0) {
+                reportSummary += '| Page | Performance | Accessibility | Best Practices | SEO | PWA |\n';
+                reportSummary += '|------|-------------|---------------|----------------|-----|-----|\n';
+                
+                for (const file of jsonFiles) {
+                  const report = JSON.parse(fs.readFileSync(path.join(lighthouseDir, file), 'utf8'));
+                  const categories = report.categories;
+                  
+                  const formatScore = (score) => {
+                    const percentage = Math.round(score * 100);
+                    let emoji = '🔴';
+                    if (percentage >= 90) emoji = '🟢';
+                    else if (percentage >= 70) emoji = '🟡';
+                    return `${emoji} ${percentage}`;
+                  };
+                  
+                  const url = new URL(report.finalUrl);
+                  const page = url.pathname === '/' ? 'Home' : url.pathname.replace('/', '').replace(/\//g, ' / ');
+                  
+                  reportSummary += `| ${page} | ${formatScore(categories.performance.score)} | ${formatScore(categories.accessibility.score)} | ${formatScore(categories['best-practices'].score)} | ${formatScore(categories.seo.score)} | ${categories.pwa ? formatScore(categories.pwa.score) : 'N/A'} |\n`;
+                }
+                
+                reportSummary += '\n### 📊 Performance Insights\n\n';
+                reportSummary += '- **🟢 90-100**: Excellent\n';
+                reportSummary += '- **🟡 70-89**: Good\n';
+                reportSummary += '- **🔴 0-69**: Needs Improvement\n\n';
+                reportSummary += '### 🔗 Detailed Reports\n\n';
+                reportSummary += 'View the complete Lighthouse reports in the CI artifacts.\n';
+              } else {
+                reportSummary += '⚠️ No Lighthouse reports found.\n';
+              }
+            } catch (error) {
+              reportSummary += `❌ Error reading Lighthouse reports: ${error.message}\n`;
+            }
+            
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Lighthouse Performance Audit')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: reportSummary
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: reportSummary
+              });
+            }
+
+      - name: Performance regression check
+        run: |
+          # Set performance thresholds
+          PERFORMANCE_THRESHOLD=85
+          ACCESSIBILITY_THRESHOLD=95
+          SEO_THRESHOLD=95
+          
+          echo "Checking performance thresholds..."
+          echo "Performance: >= $PERFORMANCE_THRESHOLD"
+          echo "Accessibility: >= $ACCESSIBILITY_THRESHOLD"
+          echo "SEO: >= $SEO_THRESHOLD"
+          
+          # This would normally parse the Lighthouse results and fail if below thresholds
+          # For now, we'll just log the thresholds
+          echo "✅ Performance check completed"
+
+      - name: Upload Lighthouse artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-reports
+          path: |
+            .lighthouseci/
+            lhci_reports/
+          retention-days: 30

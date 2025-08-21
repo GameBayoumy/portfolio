@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { gitHubApi, GitHubStats } from '@/services/github-api';
+import { gitHubApi } from '@/services/github-api';
+import type { GitHubStats } from '@/types/github';
 
 interface UseGitHubStatsReturn {
   data: GitHubStats | null;
