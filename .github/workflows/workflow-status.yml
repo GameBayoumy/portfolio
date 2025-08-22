@@ -1,0 +1,149 @@
+name: Workflow Status Monitor
+
+on:
+  workflow_run:
+    workflows: 
+      - "CI Pipeline"
+      - "Vercel Deployment" 
+      - "Security Scan"
+      - "Code Quality Gate"
+    types:
+      - completed
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+  checks: write
+
+jobs:
+  workflow-status:
+    name: Monitor Workflow Status
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check workflow status
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const { data: workflow } = await github.rest.actions.getWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.payload.workflow_run.id,
+            });
+            
+            const workflowName = workflow.name;
+            const conclusion = workflow.conclusion;
+            const status = workflow.status;
+            const htmlUrl = workflow.html_url;
+            const headBranch = workflow.head_branch;
+            const runNumber = workflow.run_number;
+            
+            console.log(`Workflow: ${workflowName}`);
+            console.log(`Status: ${status}`);
+            console.log(`Conclusion: ${conclusion}`);
+            console.log(`Branch: ${headBranch}`);
+            console.log(`Run Number: ${runNumber}`);
+            
+            // Create status summary
+            let statusIcon = '🔄';
+            let statusText = 'Running';
+            
+            if (conclusion === 'success') {
+              statusIcon = '✅';
+              statusText = 'Success';
+            } else if (conclusion === 'failure') {
+              statusIcon = '❌';
+              statusText = 'Failed';
+            } else if (conclusion === 'cancelled') {
+              statusIcon = '⏹️';
+              statusText = 'Cancelled';
+            } else if (conclusion === 'skipped') {
+              statusIcon = '⏭️';
+              statusText = 'Skipped';
+            }
+            
+            const summary = `## ${statusIcon} Workflow Status Update
+            
+            **Workflow**: ${workflowName}
+            **Status**: ${statusText}
+            **Branch**: ${headBranch}
+            **Run**: [#${runNumber}](${htmlUrl})
+            **Completed**: ${new Date().toISOString()}
+            `;
+            
+            // Log to job summary
+            await core.summary
+              .addHeading('Workflow Status Monitor')
+              .addTable([
+                [
+                  {data: 'Workflow', header: true},
+                  {data: 'Status', header: true},
+                  {data: 'Branch', header: true},
+                  {data: 'Conclusion', header: true}
+                ],
+                [workflowName, statusText, headBranch, conclusion || 'N/A']
+              ])
+              .write();
+            
+            // If workflow failed, create notification
+            if (conclusion === 'failure') {
+              console.log('::error::Workflow failed - investigate required');
+            }
+
+  performance-metrics:
+    name: Collect Performance Metrics
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+    
+    steps:
+      - name: Collect workflow metrics
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const { data: jobs } = await github.rest.actions.listJobsForWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.payload.workflow_run.id,
+            });
+            
+            let totalDuration = 0;
+            let jobMetrics = [];
+            
+            for (const job of jobs.jobs) {
+              if (job.started_at && job.completed_at) {
+                const startTime = new Date(job.started_at);
+                const endTime = new Date(job.completed_at);
+                const duration = (endTime - startTime) / 1000; // Duration in seconds
+                
+                totalDuration += duration;
+                jobMetrics.push({
+                  name: job.name,
+                  duration: duration,
+                  conclusion: job.conclusion
+                });
+              }
+            }
+            
+            // Log metrics
+            console.log('Workflow Performance Metrics:');
+            console.log(`Total Duration: ${totalDuration} seconds`);
+            console.log('Job Breakdown:');
+            
+            jobMetrics.forEach(job => {
+              console.log(`  ${job.name}: ${job.duration}s (${job.conclusion})`);
+            });
+            
+            // Create performance summary
+            await core.summary
+              .addHeading('Performance Metrics')
+              .addTable([
+                [
+                  {data: 'Job', header: true},
+                  {data: 'Duration (s)', header: true},
+                  {data: 'Status', header: true}
+                ],
+                ...jobMetrics.map(job => [job.name, job.duration.toFixed(1), job.conclusion])
+              ])
+              .addRaw(`<p><strong>Total Workflow Duration:</strong> ${totalDuration.toFixed(1)} seconds</p>`)
+              .write();

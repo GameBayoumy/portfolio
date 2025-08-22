@@ -1,0 +1,129 @@
+# GitHub Repository Settings
+# This file can be used with the Probot Settings app to automatically configure repository settings
+
+repository:
+  name: portfolio
+  description: "Modern XR Developer Portfolio with 3D Effects"
+  homepage: https://your-domain.vercel.app
+  topics:
+    - portfolio
+    - nextjs
+    - react
+    - threejs
+    - xr
+    - webgl
+    - typescript
+    - vercel
+  private: false
+  has_issues: true
+  has_projects: true
+  has_wiki: false
+  has_downloads: false
+  default_branch: main
+  allow_squash_merge: true
+  allow_merge_commit: false
+  allow_rebase_merge: true
+  delete_branch_on_merge: true
+  enable_automated_security_fixes: true
+  enable_vulnerability_alerts: true
+
+# Branch protection rules
+branches:
+  - name: main
+    protection:
+      required_status_checks:
+        strict: true
+        contexts:
+          - "ci/optimized-pipeline"
+          - "security/scan"
+          - "vercel"
+      enforce_admins: false
+      required_pull_request_reviews:
+        required_approving_review_count: 1
+        dismiss_stale_reviews: true
+        require_code_owner_reviews: true
+        require_last_push_approval: false
+      restrictions: null
+      required_linear_history: false
+      allow_force_pushes: false
+      allow_deletions: false
+
+# Labels for issue and PR management
+labels:
+  # Type labels
+  - name: "type: bug"
+    color: "d73a4a"
+    description: "Something isn't working"
+  - name: "type: enhancement"
+    color: "a2eeef"
+    description: "New feature or request"
+  - name: "type: documentation"
+    color: "0075ca"
+    description: "Improvements or additions to documentation"
+  - name: "type: maintenance"
+    color: "fbca04"
+    description: "Maintenance and housekeeping"
+
+  # Priority labels
+  - name: "priority: critical"
+    color: "b60205"
+    description: "Critical priority"
+  - name: "priority: high"
+    color: "d93f0b"
+    description: "High priority"
+  - name: "priority: medium"
+    color: "fbca04"
+    description: "Medium priority"
+  - name: "priority: low"
+    color: "0e8a16"
+    description: "Low priority"
+
+  # Status labels
+  - name: "status: blocked"
+    color: "d73a4a"
+    description: "Blocked by external dependency"
+  - name: "status: in progress"
+    color: "fbca04"
+    description: "Currently being worked on"
+  - name: "status: needs review"
+    color: "0052cc"
+    description: "Needs review"
+  - name: "status: ready"
+    color: "0e8a16"
+    description: "Ready for development"
+
+  # Area labels
+  - name: "area: ci/cd"
+    color: "5319e7"
+    description: "Continuous Integration/Deployment"
+  - name: "area: security"
+    color: "b60205"
+    description: "Security-related"
+  - name: "area: performance"
+    color: "006b75"
+    description: "Performance-related"
+  - name: "area: ui/ux"
+    color: "7057ff"
+    description: "User Interface/Experience"
+  - name: "area: 3d/xr"
+    color: "1d76db"
+    description: "3D graphics and XR features"
+
+# Collaborators and teams (adjust as needed)
+# collaborators:
+#   - username: collaborator-username
+#     permission: push
+#   - username: another-collaborator
+#     permission: pull
+
+# Milestones
+milestones:
+  - title: "v1.0.0 - Initial Release"
+    description: "First stable release with core portfolio features"
+    state: open
+  - title: "v1.1.0 - Enhanced XR Features"
+    description: "Advanced XR and 3D interactive features"
+    state: open
+  - title: "v1.2.0 - Performance Optimization"
+    description: "Performance improvements and optimization"
+    state: open

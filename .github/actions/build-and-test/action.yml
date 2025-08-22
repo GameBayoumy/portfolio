@@ -1,0 +1,152 @@
+name: 'Build and Test'
+description: 'Run linting, type checking, testing, and build processes with proper error handling'
+
+inputs:
+  run-lint:
+    description: 'Whether to run ESLint'
+    required: false
+    default: 'true'
+  run-type-check:
+    description: 'Whether to run TypeScript type checking'
+    required: false
+    default: 'true'
+  run-tests:
+    description: 'Whether to run tests'
+    required: false
+    default: 'false'
+  run-build:
+    description: 'Whether to run build'
+    required: false
+    default: 'true'
+  fail-fast:
+    description: 'Whether to fail fast on first error'
+    required: false
+    default: 'true'
+
+outputs:
+  lint-result:
+    description: 'Result of linting step'
+    value: ${{ steps.lint.outcome }}
+  type-check-result:
+    description: 'Result of type checking step'
+    value: ${{ steps.type-check.outcome }}
+  test-result:
+    description: 'Result of testing step'
+    value: ${{ steps.test.outcome }}
+  build-result:
+    description: 'Result of build step'
+    value: ${{ steps.build.outcome }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run ESLint
+      id: lint
+      if: inputs.run-lint == 'true'
+      shell: bash
+      run: |
+        echo "Running ESLint..."
+        if npm run lint; then
+          echo "✅ Linting passed"
+        else
+          echo "❌ Linting failed"
+          if [ "${{ inputs.fail-fast }}" = "true" ]; then
+            exit 1
+          fi
+        fi
+      continue-on-error: ${{ inputs.fail-fast != 'true' }}
+
+    - name: Run Type Check
+      id: type-check
+      if: inputs.run-type-check == 'true' && (success() || inputs.fail-fast != 'true')
+      shell: bash
+      run: |
+        echo "Running TypeScript type check..."
+        if npm run type-check; then
+          echo "✅ Type checking passed"
+        else
+          echo "❌ Type checking failed"
+          if [ "${{ inputs.fail-fast }}" = "true" ]; then
+            exit 1
+          fi
+        fi
+      continue-on-error: ${{ inputs.fail-fast != 'true' }}
+
+    - name: Run Tests
+      id: test
+      if: inputs.run-tests == 'true' && (success() || inputs.fail-fast != 'true')
+      shell: bash
+      run: |
+        echo "Running tests..."
+        if npm test; then
+          echo "✅ Tests passed"
+        else
+          echo "❌ Tests failed"
+          if [ "${{ inputs.fail-fast }}" = "true" ]; then
+            exit 1
+          fi
+        fi
+      continue-on-error: ${{ inputs.fail-fast != 'true' }}
+
+    - name: Run Build
+      id: build
+      if: inputs.run-build == 'true' && (success() || inputs.fail-fast != 'true')
+      shell: bash
+      run: |
+        echo "Building application..."
+        if npm run build; then
+          echo "✅ Build completed successfully"
+          
+          # Check build output
+          if [ -d ".next" ]; then
+            BUILD_SIZE=$(du -sh .next 2>/dev/null | cut -f1)
+            echo "Build size: $BUILD_SIZE"
+            
+            # Check for build artifacts
+            if [ -d ".next/static" ]; then
+              STATIC_FILES=$(find .next/static -type f | wc -l)
+              echo "Static files generated: $STATIC_FILES"
+            fi
+          fi
+        else
+          echo "❌ Build failed"
+          if [ "${{ inputs.fail-fast }}" = "true" ]; then
+            exit 1
+          fi
+        fi
+      continue-on-error: ${{ inputs.fail-fast != 'true' }}
+      env:
+        NODE_ENV: production
+        CI: true
+        FORCE_COLOR: 1
+
+    - name: Results Summary
+      shell: bash
+      run: |
+        echo "## Build and Test Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Step | Result |" >> $GITHUB_STEP_SUMMARY
+        echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ inputs.run-lint }}" = "true" ]; then
+          LINT_STATUS="${{ steps.lint.outcome == 'success' && '✅ Passed' || '❌ Failed' }}"
+          echo "| ESLint | $LINT_STATUS |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ "${{ inputs.run-type-check }}" = "true" ]; then
+          TYPE_STATUS="${{ steps.type-check.outcome == 'success' && '✅ Passed' || '❌ Failed' }}"
+          echo "| Type Check | $TYPE_STATUS |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ "${{ inputs.run-tests }}" = "true" ]; then
+          TEST_STATUS="${{ steps.test.outcome == 'success' && '✅ Passed' || '❌ Failed' }}"
+          echo "| Tests | $TEST_STATUS |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ "${{ inputs.run-build }}" = "true" ]; then
+          BUILD_STATUS="${{ steps.build.outcome == 'success' && '✅ Passed' || '❌ Failed' }}"
+          echo "| Build | $BUILD_STATUS |" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Completed at**: $(date -u)" >> $GITHUB_STEP_SUMMARY

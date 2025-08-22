@@ -1,0 +1,115 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":separatePatchReleases"
+  ],
+  "timezone": "UTC",
+  "schedule": ["before 6am on monday"],
+  "prHourlyLimit": 2,
+  "prConcurrentLimit": 5,
+  "rebaseWhen": "conflicted",
+  "assignees": ["GameBayoumy"],
+  "reviewers": ["GameBayoumy"],
+  "labels": ["type: maintenance", "area: dependencies"],
+  "commitMessagePrefix": "chore:",
+  "semanticCommits": "enabled",
+  "separateMinorPatch": true,
+  "rangeStrategy": "bump",
+  "ignoreDeps": [],
+  "packageRules": [
+    {
+      "groupName": "React ecosystem",
+      "matchPackagePatterns": ["^react", "^@types/react"],
+      "schedule": ["before 6am on monday"]
+    },
+    {
+      "groupName": "Next.js and build tools",
+      "matchPackagePatterns": [
+        "^next",
+        "^@next/",
+        "^typescript$",
+        "^eslint",
+        "^@typescript-eslint/",
+        "^prettier"
+      ],
+      "schedule": ["before 6am on monday"]
+    },
+    {
+      "groupName": "Three.js ecosystem",
+      "matchPackagePatterns": [
+        "^three",
+        "^@react-three/",
+        "^@types/three"
+      ],
+      "schedule": ["before 6am on monday"]
+    },
+    {
+      "groupName": "Animation libraries",
+      "matchPackageNames": [
+        "framer-motion",
+        "gsap"
+      ],
+      "matchPackagePatterns": ["^@react-spring/"],
+      "schedule": ["before 6am on monday"]
+    },
+    {
+      "groupName": "Testing dependencies",
+      "matchPackagePatterns": [
+        "^@testing-library/",
+        "^jest",
+        "^@types/jest"
+      ],
+      "matchDepTypes": ["devDependencies"],
+      "schedule": ["before 6am on monday"]
+    },
+    {
+      "groupName": "GitHub Actions",
+      "matchManagers": ["github-actions"],
+      "schedule": ["before 6am on monday"],
+      "commitMessagePrefix": "ci:",
+      "labels": ["type: maintenance", "area: ci/cd"]
+    },
+    {
+      "matchDepTypes": ["peerDependencies"],
+      "enabled": false
+    },
+    {
+      "matchPackageNames": ["react", "react-dom"],
+      "allowedVersions": "^18.0.0"
+    },
+    {
+      "matchPackageNames": ["next"],
+      "allowedVersions": "^14.0.0"
+    },
+    {
+      "matchPackageNames": ["three"],
+      "allowedVersions": "^0.160.0"
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "commitMessagePrefix": "fix(security):"
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on monday"],
+    "commitMessagePrefix": "chore:"
+  },
+  "platformAutomerge": true,
+  "automerge": false,
+  "major": {
+    "automerge": false
+  },
+  "minor": {
+    "automerge": false
+  },
+  "patch": {
+    "automerge": false
+  },
+  "pin": {
+    "automerge": false
+  }
+}

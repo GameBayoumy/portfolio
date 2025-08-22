@@ -1,0 +1,47 @@
+# Global code owners
+* @GameBayoumy
+
+# GitHub Actions and CI/CD
+.github/ @GameBayoumy
+.github/workflows/ @GameBayoumy
+
+# Configuration files  
+*.json @GameBayoumy
+*.yaml @GameBayoumy
+*.yml @GameBayoumy
+*.toml @GameBayoumy
+*.config.js @GameBayoumy
+*.config.ts @GameBayoumy
+
+# Package and dependency management
+package.json @GameBayoumy
+package-lock.json @GameBayoumy
+yarn.lock @GameBayoumy
+
+# Next.js configuration
+next.config.* @GameBayoumy
+vercel.json @GameBayoumy
+
+# TypeScript configuration
+tsconfig.json @GameBayoumy
+tsconfig.*.json @GameBayoumy
+
+# Linting and formatting
+.eslintrc* @GameBayoumy
+.prettierrc* @GameBayoumy
+.editorconfig @GameBayoumy
+
+# Security and environment
+.env* @GameBayoumy
+*.env @GameBayoumy
+
+# Testing
+jest.config.* @GameBayoumy
+*.test.* @GameBayoumy
+*.spec.* @GameBayoumy
+/tests/ @GameBayoumy
+
+# Documentation
+README.md @GameBayoumy
+/docs/ @GameBayoumy
+*.md @GameBayoumy

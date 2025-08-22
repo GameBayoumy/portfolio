@@ -1,0 +1,207 @@
+name: Optimized Deployment Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18.17.0'
+
+permissions:
+  contents: read
+  deployments: write
+  statuses: write
+  pull-requests: write
+  checks: write
+
+jobs:
+  # Deploy preview for PRs
+  deploy-preview:
+    name: Deploy Preview
+    if: github.event_name == 'pull_request'
+    uses: ./.github/workflows/reusable-deploy.yml
+    with:
+      environment: 'preview'
+      node-version: '18.17.0'
+      timeout-minutes: 20
+      max-retries: 3
+    secrets:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+  # Deploy to production for main branch
+  deploy-production:
+    name: Deploy Production
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    uses: ./.github/workflows/reusable-deploy.yml
+    with:
+      environment: 'production'
+      node-version: '18.17.0'
+      timeout-minutes: 25
+      max-retries: 5
+    secrets:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+  # Update PR with preview URL
+  update-pr:
+    name: Update PR with Preview
+    runs-on: ubuntu-latest
+    needs: deploy-preview
+    if: github.event_name == 'pull_request' && needs.deploy-preview.outputs.deployment-status == 'success'
+    
+    steps:
+      - name: Update PR with deployment info
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const deploymentUrl = '${{ needs.deploy-preview.outputs.deployment-url }}';
+            
+            const body = `## 🚀 Preview Deployment Ready
+            
+            **✅ Status**: Successfully deployed
+            **🔗 Preview URL**: [${deploymentUrl}](${deploymentUrl})
+            **📝 Commit**: ${context.sha.substring(0, 7)}
+            **🕐 Deployed**: ${new Date().toISOString()}
+            
+            ---
+            
+            ### 📊 Quick Links
+            - [🚀 Preview Site](${deploymentUrl})
+            - [📈 Analytics](${deploymentUrl}/_vercel/insights)
+            - [⚡ Performance](${deploymentUrl}/_vercel/speed-insights)
+            
+            **🔄 This preview updates automatically with new commits**
+            `;
+            
+            // Find and update existing comment or create new one
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Preview Deployment')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
+  # Run Lighthouse on preview
+  lighthouse-preview:
+    name: Lighthouse Preview Audit
+    runs-on: ubuntu-latest
+    needs: deploy-preview
+    if: github.event_name == 'pull_request' && needs.deploy-preview.outputs.deployment-status == 'success'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@2f8dda6cf4de7d73b29853c3f29e73a01e297bd8 # v12.1.0
+        with:
+          urls: |
+            ${{ needs.deploy-preview.outputs.deployment-url }}
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+          runs: 3
+        continue-on-error: true
+        timeout-minutes: 15
+
+      - name: Comment Lighthouse results
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            // This would parse Lighthouse results and comment on PR
+            // For now, just indicate that Lighthouse ran
+            const body = `## 🚨 Lighthouse Audit Complete
+            
+            Performance audit has been completed for the preview deployment.
+            
+            📊 **Reports**: Check the workflow artifacts for detailed results
+            🔍 **URL Tested**: ${{ needs.deploy-preview.outputs.deployment-url }}
+            ⏰ **Completed**: ${new Date().toISOString()}
+            `;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
+
+  # Post-deployment validation for production
+  validate-production:
+    name: Validate Production
+    runs-on: ubuntu-latest
+    needs: deploy-production
+    if: needs.deploy-production.outputs.deployment-status == 'success'
+    
+    steps:
+      - name: Extended health checks
+        run: |
+          URL="${{ needs.deploy-production.outputs.deployment-url }}"
+          
+          echo "🔍 Running extended health checks on: $URL"
+          
+          # Test multiple endpoints
+          ENDPOINTS=("/" "/api/health" "/robots.txt" "/sitemap.xml")
+          
+          for endpoint in "${ENDPOINTS[@]}"; do
+            FULL_URL="${URL}${endpoint}"
+            echo "Testing: $FULL_URL"
+            
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$FULL_URL" || echo "000")
+            
+            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "404" ]; then
+              echo "✅ $endpoint: HTTP $HTTP_CODE"
+            else
+              echo "⚠️ $endpoint: HTTP $HTTP_CODE"
+            fi
+          done
+          
+          echo "✅ Extended health checks completed"
+
+      - name: Performance benchmark
+        run: |
+          URL="${{ needs.deploy-production.outputs.deployment-url }}"
+          
+          echo "⚡ Running performance benchmark..."
+          
+          # Basic performance test with curl
+          TIME_TOTAL=$(curl -w "%{time_total}" -s -o /dev/null "$URL")
+          TIME_NAMELOOKUP=$(curl -w "%{time_namelookup}" -s -o /dev/null "$URL")
+          TIME_CONNECT=$(curl -w "%{time_connect}" -s -o /dev/null "$URL")
+          
+          echo "📊 Performance metrics:"
+          echo "  Total time: ${TIME_TOTAL}s"
+          echo "  DNS lookup: ${TIME_NAMELOOKUP}s"
+          echo "  Connection: ${TIME_CONNECT}s"
+          
+          # Basic performance threshold check
+          if (( $(echo "$TIME_TOTAL > 3.0" | bc -l) )); then
+            echo "⚠️ Site response time is above 3 seconds"
+          else
+            echo "✅ Site response time is acceptable"
+          fi

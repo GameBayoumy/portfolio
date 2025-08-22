@@ -1,0 +1,170 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [ main ]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+env:
+  NODE_VERSION: '18.17.0'
+  CI: true
+  FORCE_COLOR: 1
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+  statuses: write
+
+jobs:
+  pr-validation:
+    name: PR Validation
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          check-latest: true
+
+      - name: Check PR title format
+        uses: amannn/action-semantic-pull-request@0723387faaf9b38adef4775cd42cfd5155ed6017 # v5.5.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+          requireScope: false
+
+      - name: Check for breaking changes
+        run: |
+          # Check if this is a breaking change PR
+          if echo "${{ github.event.pull_request.title }}" | grep -qi "breaking\|major"; then
+            echo "::warning::This appears to be a breaking change. Please ensure proper documentation and migration guides."
+          fi
+
+      - name: Validate file changes
+        run: |
+          # Get changed files
+          CHANGED_FILES=$(git diff --name-only origin/main...HEAD)
+          
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+          
+          # Check for sensitive files
+          SENSITIVE_FILES=$(echo "$CHANGED_FILES" | grep -E "\.(env|key|pem|p12|pfx)$" || true)
+          if [ -n "$SENSITIVE_FILES" ]; then
+            echo "::error::Sensitive files detected in PR: $SENSITIVE_FILES"
+            exit 1
+          fi
+          
+          # Check for large files
+          LARGE_FILES=$(git diff --name-only origin/main...HEAD | xargs ls -la 2>/dev/null | awk '$5 > 1048576 {print $9, $5}' || true)
+          if [ -n "$LARGE_FILES" ]; then
+            echo "::warning::Large files detected (>1MB): $LARGE_FILES"
+          fi
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit --frozen-lockfile
+        timeout-minutes: 10
+
+      - name: Run quick tests
+        run: |
+          npm run lint
+          npm run type-check
+          echo "✅ Quick validation passed"
+
+      - name: Comment PR status
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const body = `## 🔍 PR Validation Results
+            
+            **Status**: ✅ Ready for review
+            **Checks completed**: ${new Date().toISOString()}
+            
+            ### Validation Summary:
+            - ✅ PR title follows semantic format
+            - ✅ No sensitive files detected
+            - ✅ Linting passed
+            - ✅ Type checking passed
+            
+            **Next steps**: Full CI pipeline will run after this validation.
+            `;
+            
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('PR Validation Results')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
+  draft-pr-check:
+    name: Draft PR Check
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == true
+    
+    steps:
+      - name: Comment on draft PR
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const body = `## 📝 Draft PR Notice
+            
+            This is a **draft pull request**. 
+            
+            **Actions taken**:
+            - ⏭️ Skipping full CI pipeline to save resources
+            - 📋 Basic validations will run when marked as ready for review
+            
+            **To proceed**:
+            1. Complete your changes
+            2. Mark the PR as "Ready for review"
+            3. Full CI pipeline will then execute automatically
+            `;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
