@@ -27,9 +27,20 @@ const GitHubVisualizersSection = dynamic(() => import('@/components/github-visua
   ssr: false
 });
 
+const LinkedInVisualizersSection = dynamic(() => import('@/components/linkedin-visualizers/LinkedInVisualizersSection'), {
+  ssr: false
+});
+
+const FloatingNav = dynamic(() => import('@/components/navigation/floating-nav'), {
+  ssr: false
+});
+
 export default function Home() {
   return (
     <>
+      {/* Navigation */}
+      <FloatingNav />
+
       {/* 3D Background */}
       <Suspense fallback={<div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900" />}>
         <ThreeDBackground />
@@ -51,6 +62,10 @@ export default function Home() {
 
         <Suspense fallback={<div className="min-h-screen bg-transparent" />}>
           <GitHubVisualizersSection />
+        </Suspense>
+
+        <Suspense fallback={<div className="min-h-screen bg-transparent" />}>
+          <LinkedInVisualizersSection />
         </Suspense>
 
         <Suspense fallback={<div className="min-h-screen bg-transparent" />}>
