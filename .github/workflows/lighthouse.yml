@@ -24,7 +24,7 @@ jobs:
 
       - name: Wait for Vercel deployment
         if: github.event_name == 'pull_request'
-        uses: patrickedqvist/wait-for-vercel-preview@v1.3.1
+        uses: patrickedqvist/wait-for-vercel-preview@v1.3.2
         id: waitForVercel
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
