@@ -1,4 +1,3 @@
-/** @type {import('jest').Config} */
 const nextJest = require('next/jest');
 
 const createJestConfig = nextJest({
@@ -8,20 +7,32 @@ const createJestConfig = nextJest({
 
 // Add any custom config to be passed to Jest
 const customJestConfig = {
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  testEnvironment: 'jsdom',
-  testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/'],
-  testMatch: ['<rootDir>/tests/**/*.test.{js,jsx,ts,tsx}'],
+  setupFilesAfterEnv: ['<rootDir>/tests/jest.setup.ts'],
+  moduleNameMapping: {
+    // Handle module aliases (this will be automatically configured for you based on your tsconfig.json paths)
+    '^@/(.*)$': '<rootDir>/src/$1',
+  },
+  testEnvironment: 'jest-environment-jsdom',
+  testMatch: [
+    '<rootDir>/tests/**/*.test.{js,jsx,ts,tsx}',
+    '<rootDir>/**/*.test.{js,jsx,ts,tsx}',
+  ],
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',
     '!src/**/*.d.ts',
-    '!src/types/**/*',
+    '!src/**/index.ts',
+    '!src/**/*.stories.{js,jsx,ts,tsx}',
   ],
-  moduleNameMapping: {
-    '^@/(.*)$': '<rootDir>/src/$1',
+  coverageReporters: ['text', 'lcov', 'html'],
+  coverageDirectory: 'coverage',
+  transform: {
+    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
   },
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+  testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/'],
   transformIgnorePatterns: [
-    'node_modules/(?!(three|@react-three|d3|framer-motion)/)',
+    '/node_modules/',
+    '^.+\\.module\\.(css|sass|scss)$',
   ],
 };
 

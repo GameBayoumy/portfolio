@@ -21,10 +21,29 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:performance": "node tests/performance-tests.js",
     "security:audit": "npm audit --audit-level=moderate",
     "security:fix": "npm audit fix",
     "precommit": "lint-staged",
-    "postinstall": "husky install"
+    "postinstall": "husky install",
+    "release": "semantic-release",
+    "release:dry": "semantic-release --dry-run",
+    "release:patch": "npm version patch && npm run release",
+    "release:minor": "npm version minor && npm run release",
+    "release:major": "npm version major && npm run release",
+    "release:beta": "semantic-release --branches beta",
+    "release:alpha": "semantic-release --branches alpha",
+    "changelog": "conventional-changelog -p conventionalcommits -i CHANGELOG.md -s",
+    "changelog:init": "conventional-changelog -p conventionalcommits -i CHANGELOG.md -s -r 0",
+    "version:pre": "node scripts/version-hooks.js pre",
+    "version:post": "node scripts/version-hooks.js post",
+    "commit": "cz",
+    "commit:lint": "commitlint --edit",
+    "commit:prepare": "husky add .husky/commit-msg 'npx --no -- commitlint --edit $1'",
+    "version:info": "node -e \"console.log(JSON.stringify({version: require('./package.json').version, node: process.version, npm: process.env.npm_version || 'unknown'}, null, 2))\"",
+    "version:check": "npm outdated",
+    "lighthouse": "lhci autorun",
+    "lighthouse:local": "lhci autorun --config=.lighthouserc.js"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -92,7 +111,22 @@
     "prettier": "^3.2.0",
     "prettier-plugin-tailwindcss": "^0.5.0",
     "rimraf": "^5.0.0",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "@commitlint/cli": "^19.5.0",
+    "@commitlint/config-conventional": "^19.5.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^13.0.0",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^11.0.0",
+    "@semantic-release/npm": "^12.0.1",
+    "@semantic-release/release-notes-generator": "^14.0.1",
+    "@lhci/cli": "^0.13.0",
+    "commitizen": "^4.3.0",
+    "conventional-changelog-cli": "^5.0.0",
+    "conventional-changelog-conventionalcommits": "^8.0.0",
+    "cz-conventional-changelog": "^3.3.0",
+    "semantic-release": "^24.2.0",
+    "standard-version": "^9.5.0"
   },
   "engines": {
     "node": ">=18.17.0"
@@ -105,5 +139,16 @@
     "*.{json,css,md}": [
       "prettier --write"
     ]
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
+  "standard-version": {
+    "scripts": {
+      "prerelease": "node scripts/version-hooks.js pre",
+      "postbump": "node scripts/version-hooks.js post"
+    }
   }
 }

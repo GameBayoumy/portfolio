@@ -1,0 +1,23 @@
+{
+  "version": "1.0.0",
+  "buildDate": "2025-08-22T00:00:00.000Z",
+  "commitHash": "5f26e5f",
+  "features": {
+    "linkedin": true,
+    "github": true,
+    "threejs": true,
+    "xr": true,
+    "d3": true,
+    "performance": true
+  },
+  "apiVersions": {
+    "linkedin": "v2",
+    "github": "v4",
+    "vercel": "v1"
+  },
+  "buildInfo": {
+    "node": "18.17.0",
+    "next": "14.2.0",
+    "typescript": "5.4.0"
+  }
+}

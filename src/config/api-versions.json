@@ -1,0 +1,46 @@
+{
+  "portfolio": "1.0.0",
+  "linkedin": "v2",
+  "github": "v4",
+  "vercel": "v1",
+  "lastUpdated": "2025-08-22T00:00:00.000Z",
+  "compatibility": {
+    "linkedin": {
+      "apiVersion": "v2",
+      "supportedFeatures": [
+        "profile",
+        "experience",
+        "education",
+        "skills",
+        "certifications"
+      ],
+      "deprecatedFeatures": [],
+      "migrations": []
+    },
+    "github": {
+      "apiVersion": "v4",
+      "graphql": true,
+      "supportedFeatures": [
+        "repositories",
+        "contributions",
+        "languages",
+        "stars",
+        "followers",
+        "organizations"
+      ],
+      "rateLimits": {
+        "requests": 5000,
+        "window": "1h"
+      }
+    },
+    "vercel": {
+      "apiVersion": "v1",
+      "supportedFeatures": [
+        "deployments",
+        "projects",
+        "domains",
+        "analytics"
+      ]
+    }
+  }
+}
