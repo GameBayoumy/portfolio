@@ -1,1 +1,214 @@
-import { NextRequest, NextResponse } from 'next/server';\nimport fs from 'fs';\nimport path from 'path';\n\n/**\n * API Route: /api/version/api-compatibility\n * Returns API version compatibility information\n */\nexport async function GET(request: NextRequest) {\n  try {\n    const apiVersionsPath = path.join(process.cwd(), 'src/config/api-versions.json');\n    \n    let apiVersions;\n    try {\n      const apiData = fs.readFileSync(apiVersionsPath, 'utf8');\n      apiVersions = JSON.parse(apiData);\n    } catch (error) {\n      // Fallback API versions\n      apiVersions = {\n        portfolio: '1.0.0',\n        linkedin: 'v2',\n        github: 'v4',\n        vercel: 'v1',\n        lastUpdated: new Date().toISOString(),\n        compatibility: {\n          linkedin: {\n            apiVersion: 'v2',\n            supportedFeatures: [\n              'profile',\n              'experience',\n              'education',\n              'skills',\n              'certifications'\n            ],\n            deprecatedFeatures: [],\n            migrations: []\n          },\n          github: {\n            apiVersion: 'v4',\n            graphql: true,\n            supportedFeatures: [\n              'repositories',\n              'contributions',\n              'languages',\n              'stars',\n              'followers',\n              'organizations'\n            ],\n            rateLimits: {\n              requests: 5000,\n              window: '1h'\n            }\n          },\n          vercel: {\n            apiVersion: 'v1',\n            supportedFeatures: [\n              'deployments',\n              'projects',\n              'domains',\n              'analytics'\n            ]\n          }\n        }\n      };\n    }\n\n    // Add runtime compatibility checks\n    const compatibilityReport = {\n      ...apiVersions,\n      runtime: {\n        lastChecked: new Date().toISOString(),\n        environment: process.env.NODE_ENV || 'development',\n      },\n      health: {\n        linkedin: await checkLinkedInApiHealth(),\n        github: await checkGitHubApiHealth(),\n        vercel: await checkVercelApiHealth(),\n      },\n    };\n\n    return NextResponse.json(compatibilityReport, {\n      headers: {\n        'Cache-Control': 's-maxage=600, stale-while-revalidate=3600',\n        'X-API-Compatibility-Version': apiVersions.portfolio,\n        'X-Last-Updated': apiVersions.lastUpdated,\n      },\n    });\n  } catch (error) {\n    console.error('Failed to get API compatibility info:', error);\n    \n    return NextResponse.json(\n      {\n        error: 'Failed to retrieve API compatibility information',\n        message: error instanceof Error ? error.message : 'Unknown error',\n      },\n      { status: 500 }\n    );\n  }\n}\n\n/**\n * Check LinkedIn API health\n */\nasync function checkLinkedInApiHealth(): Promise<{\n  status: 'healthy' | 'degraded' | 'down';\n  lastChecked: string;\n  responseTime?: number;\n}> {\n  try {\n    const startTime = Date.now();\n    \n    // This would be a real health check in production\n    // For now, we'll simulate it\n    const isHealthy = process.env.LINKEDIN_API_KEY ? true : false;\n    \n    const responseTime = Date.now() - startTime;\n    \n    return {\n      status: isHealthy ? 'healthy' : 'degraded',\n      lastChecked: new Date().toISOString(),\n      responseTime,\n    };\n  } catch (error) {\n    return {\n      status: 'down',\n      lastChecked: new Date().toISOString(),\n    };\n  }\n}\n\n/**\n * Check GitHub API health\n */\nasync function checkGitHubApiHealth(): Promise<{\n  status: 'healthy' | 'degraded' | 'down';\n  lastChecked: string;\n  responseTime?: number;\n  rateLimitRemaining?: number;\n}> {\n  try {\n    const startTime = Date.now();\n    \n    if (process.env.GITHUB_TOKEN) {\n      // Simple GitHub API health check\n      const response = await fetch('https://api.github.com/rate_limit', {\n        headers: {\n          'Authorization': `token ${process.env.GITHUB_TOKEN}`,\n          'User-Agent': 'XR-Portfolio/1.0.0',\n        },\n        // Short timeout for health check\n        signal: AbortSignal.timeout(5000),\n      });\n      \n      const responseTime = Date.now() - startTime;\n      \n      if (response.ok) {\n        const data = await response.json();\n        return {\n          status: 'healthy',\n          lastChecked: new Date().toISOString(),\n          responseTime,\n          rateLimitRemaining: data.rate.remaining,\n        };\n      } else {\n        return {\n          status: 'degraded',\n          lastChecked: new Date().toISOString(),\n          responseTime,\n        };\n      }\n    } else {\n      // No token, but API might still work with lower limits\n      return {\n        status: 'degraded',\n        lastChecked: new Date().toISOString(),\n      };\n    }\n  } catch (error) {\n    return {\n      status: 'down',\n      lastChecked: new Date().toISOString(),\n    };\n  }\n}\n\n/**\n * Check Vercel API health\n */\nasync function checkVercelApiHealth(): Promise<{\n  status: 'healthy' | 'degraded' | 'down';\n  lastChecked: string;\n  responseTime?: number;\n}> {\n  try {\n    const startTime = Date.now();\n    \n    // Check if we're running on Vercel\n    const isVercel = !!process.env.VERCEL;\n    const hasToken = !!process.env.VERCEL_TOKEN;\n    \n    const responseTime = Date.now() - startTime;\n    \n    return {\n      status: isVercel || hasToken ? 'healthy' : 'degraded',\n      lastChecked: new Date().toISOString(),\n      responseTime,\n    };\n  } catch (error) {\n    return {\n      status: 'down',\n      lastChecked: new Date().toISOString(),\n    };\n  }\n}
+import { NextRequest, NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
+
+/**
+ * API Route: /api/version/api-compatibility
+ * Returns API version compatibility information
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const apiVersionsPath = path.join(process.cwd(), 'src/config/api-versions.json');
+    
+    let apiVersions;
+    try {
+      const apiData = fs.readFileSync(apiVersionsPath, 'utf8');
+      apiVersions = JSON.parse(apiData);
+    } catch (error) {
+      // Fallback API versions
+      apiVersions = {
+        portfolio: '1.0.0',
+        linkedin: 'v2',
+        github: 'v4',
+        vercel: 'v1',
+        lastUpdated: new Date().toISOString(),
+        compatibility: {
+          linkedin: {
+            apiVersion: 'v2',
+            supportedFeatures: [
+              'profile',
+              'experience',
+              'education',
+              'skills',
+              'certifications'
+            ],
+            deprecatedFeatures: [],
+            migrations: []
+          },
+          github: {
+            apiVersion: 'v4',
+            graphql: true,
+            supportedFeatures: [
+              'repositories',
+              'contributions',
+              'languages',
+              'stars',
+              'followers',
+              'organizations'
+            ],
+            rateLimits: {
+              requests: 5000,
+              window: '1h'
+            }
+          },
+          vercel: {
+            apiVersion: 'v1',
+            supportedFeatures: [
+              'deployments',
+              'projects',
+              'domains',
+              'analytics'
+            ]
+          }
+        }
+      };
+    }
+
+    // Add runtime compatibility checks
+    const compatibilityReport = {
+      ...apiVersions,
+      runtime: {
+        lastChecked: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development',
+      },
+      health: {
+        linkedin: await checkLinkedInApiHealth(),
+        github: await checkGitHubApiHealth(),
+        vercel: await checkVercelApiHealth(),
+      },
+    };
+
+    return NextResponse.json(compatibilityReport, {
+      headers: {
+        'Cache-Control': 's-maxage=600, stale-while-revalidate=3600',
+        'X-API-Compatibility-Version': apiVersions.portfolio,
+        'X-Last-Updated': apiVersions.lastUpdated,
+      },
+    });
+  } catch (error) {
+    console.error('Failed to get API compatibility info:', error);
+    
+    return NextResponse.json(
+      {
+        error: 'Failed to retrieve API compatibility information',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * Check LinkedIn API health
+ */
+async function checkLinkedInApiHealth(): Promise<{
+  status: 'healthy' | 'degraded' | 'down';
+  lastChecked: string;
+  responseTime?: number;
+}> {
+  try {
+    const startTime = Date.now();
+    
+    // This would be a real health check in production
+    // For now, we'll simulate it
+    const isHealthy = process.env.LINKEDIN_API_KEY ? true : false;
+    
+    const responseTime = Date.now() - startTime;
+    
+    return {
+      status: isHealthy ? 'healthy' : 'degraded',
+      lastChecked: new Date().toISOString(),
+      responseTime,
+    };
+  } catch (error) {
+    return {
+      status: 'down',
+      lastChecked: new Date().toISOString(),
+    };
+  }
+}
+
+/**
+ * Check GitHub API health
+ */
+async function checkGitHubApiHealth(): Promise<{
+  status: 'healthy' | 'degraded' | 'down';
+  lastChecked: string;
+  responseTime?: number;
+  rateLimitRemaining?: number;
+}> {
+  try {
+    const startTime = Date.now();
+    
+    if (process.env.GITHUB_TOKEN) {
+      // Simple GitHub API health check
+      const response = await fetch('https://api.github.com/rate_limit', {
+        headers: {
+          'Authorization': `token ${process.env.GITHUB_TOKEN}`,
+          'User-Agent': 'XR-Portfolio/1.0.0',
+        },
+        // Short timeout for health check
+        signal: AbortSignal.timeout(5000),
+      });
+      
+      const responseTime = Date.now() - startTime;
+      
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          status: 'healthy',
+          lastChecked: new Date().toISOString(),
+          responseTime,
+          rateLimitRemaining: data.rate.remaining,
+        };
+      } else {
+        return {
+          status: 'degraded',
+          lastChecked: new Date().toISOString(),
+          responseTime,
+        };
+      }
+    } else {
+      // No token, but API might still work with lower limits
+      return {
+        status: 'degraded',
+        lastChecked: new Date().toISOString(),
+      };
+    }
+  } catch (error) {
+    return {
+      status: 'down',
+      lastChecked: new Date().toISOString(),
+    };
+  }
+}
+
+/**
+ * Check Vercel API health
+ */
+async function checkVercelApiHealth(): Promise<{
+  status: 'healthy' | 'degraded' | 'down';
+  lastChecked: string;
+  responseTime?: number;
+}> {
+  try {
+    const startTime = Date.now();
+    
+    // Check if we're running on Vercel
+    const isVercel = !!process.env.VERCEL;
+    const hasToken = !!process.env.VERCEL_TOKEN;
+    
+    const responseTime = Date.now() - startTime;
+    
+    return {
+      status: isVercel || hasToken ? 'healthy' : 'degraded',
+      lastChecked: new Date().toISOString(),
+      responseTime,
+    };
+  } catch (error) {
+    return {
+      status: 'down',
+      lastChecked: new Date().toISOString(),
+    };
+  }
+}

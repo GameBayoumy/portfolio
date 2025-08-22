@@ -1,1 +1,212 @@
-import { useState, useEffect } from 'react';\n\ninterface VersionInfo {\n  version: string;\n  buildDate: string;\n  commitHash: string;\n  features: {\n    linkedin: boolean;\n    github: boolean;\n    threejs: boolean;\n    xr: boolean;\n    d3: boolean;\n    performance: boolean;\n  };\n  apiVersions: {\n    linkedin: string;\n    github: string;\n    vercel: string;\n  };\n  buildInfo: {\n    node: string;\n    next: string;\n    typescript: string;\n  };\n}\n\ninterface ApiVersions {\n  portfolio: string;\n  linkedin: string;\n  github: string;\n  vercel: string;\n  lastUpdated: string;\n  compatibility: {\n    linkedin: {\n      apiVersion: string;\n      supportedFeatures: string[];\n      deprecatedFeatures: string[];\n      migrations: string[];\n    };\n    github: {\n      apiVersion: string;\n      graphql: boolean;\n      supportedFeatures: string[];\n      rateLimits: {\n        requests: number;\n        window: string;\n      };\n    };\n    vercel: {\n      apiVersion: string;\n      supportedFeatures: string[];\n    };\n  };\n}\n\n/**\n * Hook to get version information and API compatibility details\n */\nexport const useVersionInfo = () => {\n  const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);\n  const [apiVersions, setApiVersions] = useState<ApiVersions | null>(null);\n  const [isLoading, setIsLoading] = useState(true);\n  const [error, setError] = useState<string | null>(null);\n\n  useEffect(() => {\n    const loadVersionInfo = async () => {\n      try {\n        setIsLoading(true);\n        \n        // Load version info\n        const versionResponse = await fetch('/api/version');\n        if (!versionResponse.ok) {\n          throw new Error('Failed to load version info');\n        }\n        const versionData = await versionResponse.json();\n        setVersionInfo(versionData);\n\n        // Load API versions\n        const apiResponse = await fetch('/api/version/api-compatibility');\n        if (!apiResponse.ok) {\n          throw new Error('Failed to load API versions');\n        }\n        const apiData = await apiResponse.json();\n        setApiVersions(apiData);\n\n        setError(null);\n      } catch (err) {\n        setError(err instanceof Error ? err.message : 'Unknown error');\n        console.error('Failed to load version info:', err);\n      } finally {\n        setIsLoading(false);\n      }\n    };\n\n    loadVersionInfo();\n  }, []);\n\n  /**\n   * Check if a feature is available in the current version\n   */\n  const isFeatureAvailable = (feature: keyof VersionInfo['features']): boolean => {\n    return versionInfo?.features[feature] ?? false;\n  };\n\n  /**\n   * Get API version for a specific service\n   */\n  const getApiVersion = (service: keyof ApiVersions['compatibility']): string => {\n    return apiVersions?.compatibility[service]?.apiVersion ?? 'unknown';\n  };\n\n  /**\n   * Check if an API feature is supported\n   */\n  const isApiFeatureSupported = (\n    service: keyof ApiVersions['compatibility'],\n    feature: string\n  ): boolean => {\n    const serviceConfig = apiVersions?.compatibility[service];\n    if (!serviceConfig) return false;\n    \n    if ('supportedFeatures' in serviceConfig) {\n      return serviceConfig.supportedFeatures.includes(feature);\n    }\n    \n    return false;\n  };\n\n  /**\n   * Check if an API feature is deprecated\n   */\n  const isApiFeatureDeprecated = (\n    service: keyof ApiVersions['compatibility'],\n    feature: string\n  ): boolean => {\n    const serviceConfig = apiVersions?.compatibility[service];\n    if (!serviceConfig || !('deprecatedFeatures' in serviceConfig)) return false;\n    \n    return serviceConfig.deprecatedFeatures.includes(feature);\n  };\n\n  /**\n   * Get formatted version string\n   */\n  const getFormattedVersion = (): string => {\n    if (!versionInfo) return 'Loading...';\n    \n    const { version, commitHash, buildDate } = versionInfo;\n    const date = new Date(buildDate).toLocaleDateString();\n    \n    return `v${version} (${commitHash}) - ${date}`;\n  };\n\n  /**\n   * Get build environment information\n   */\n  const getBuildInfo = () => {\n    if (!versionInfo) return null;\n    \n    return {\n      ...versionInfo.buildInfo,\n      buildDate: versionInfo.buildDate,\n      commitHash: versionInfo.commitHash,\n    };\n  };\n\n  /**\n   * Check for version mismatches or compatibility issues\n   */\n  const getCompatibilityWarnings = (): string[] => {\n    const warnings: string[] = [];\n    \n    if (!versionInfo || !apiVersions) return warnings;\n\n    // Check for deprecated features\n    Object.entries(apiVersions.compatibility).forEach(([service, config]) => {\n      if ('deprecatedFeatures' in config && config.deprecatedFeatures.length > 0) {\n        warnings.push(\n          `${service} has deprecated features: ${config.deprecatedFeatures.join(', ')}`\n        );\n      }\n    });\n\n    // Check for version mismatches\n    if (versionInfo.version !== apiVersions.portfolio) {\n      warnings.push(\n        `Version mismatch: Portfolio v${versionInfo.version} vs API v${apiVersions.portfolio}`\n      );\n    }\n\n    return warnings;\n  };\n\n  return {\n    // Data\n    versionInfo,\n    apiVersions,\n    isLoading,\n    error,\n    \n    // Utility functions\n    isFeatureAvailable,\n    getApiVersion,\n    isApiFeatureSupported,\n    isApiFeatureDeprecated,\n    getFormattedVersion,\n    getBuildInfo,\n    getCompatibilityWarnings,\n  };\n};\n\nexport default useVersionInfo;
+import { useState, useEffect } from 'react';
+
+interface VersionInfo {
+  version: string;
+  buildDate: string;
+  commitHash: string;
+  features: {
+    linkedin: boolean;
+    github: boolean;
+    threejs: boolean;
+    xr: boolean;
+    d3: boolean;
+    performance: boolean;
+  };
+  apiVersions: {
+    linkedin: string;
+    github: string;
+    vercel: string;
+  };
+  buildInfo: {
+    node: string;
+    next: string;
+    typescript: string;
+  };
+}
+
+interface ApiVersions {
+  portfolio: string;
+  linkedin: string;
+  github: string;
+  vercel: string;
+  lastUpdated: string;
+  compatibility: {
+    linkedin: {
+      apiVersion: string;
+      supportedFeatures: string[];
+      deprecatedFeatures: string[];
+      migrations: string[];
+    };
+    github: {
+      apiVersion: string;
+      graphql: boolean;
+      supportedFeatures: string[];
+      rateLimits: {
+        requests: number;
+        window: string;
+      };
+    };
+    vercel: {
+      apiVersion: string;
+      supportedFeatures: string[];
+    };
+  };
+}
+
+/**
+ * Hook to get version information and API compatibility details
+ */
+export const useVersionInfo = () => {
+  const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
+  const [apiVersions, setApiVersions] = useState<ApiVersions | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadVersionInfo = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Load version info
+        const versionResponse = await fetch('/api/version');
+        if (!versionResponse.ok) {
+          throw new Error('Failed to load version info');
+        }
+        const versionData = await versionResponse.json();
+        setVersionInfo(versionData);
+
+        // Load API versions
+        const apiResponse = await fetch('/api/version/api-compatibility');
+        if (!apiResponse.ok) {
+          throw new Error('Failed to load API versions');
+        }
+        const apiData = await apiResponse.json();
+        setApiVersions(apiData);
+
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+        console.error('Failed to load version info:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadVersionInfo();
+  }, []);
+
+  /**
+   * Check if a feature is available in the current version
+   */
+  const isFeatureAvailable = (feature: keyof VersionInfo['features']): boolean => {
+    return versionInfo?.features[feature] ?? false;
+  };
+
+  /**
+   * Get API version for a specific service
+   */
+  const getApiVersion = (service: keyof ApiVersions['compatibility']): string => {
+    return apiVersions?.compatibility[service]?.apiVersion ?? 'unknown';
+  };
+
+  /**
+   * Check if an API feature is supported
+   */
+  const isApiFeatureSupported = (
+    service: keyof ApiVersions['compatibility'],
+    feature: string
+  ): boolean => {
+    const serviceConfig = apiVersions?.compatibility[service];
+    if (!serviceConfig) return false;
+    
+    if ('supportedFeatures' in serviceConfig) {
+      return serviceConfig.supportedFeatures.includes(feature);
+    }
+    
+    return false;
+  };
+
+  /**
+   * Check if an API feature is deprecated
+   */
+  const isApiFeatureDeprecated = (
+    service: keyof ApiVersions['compatibility'],
+    feature: string
+  ): boolean => {
+    const serviceConfig = apiVersions?.compatibility[service];
+    if (!serviceConfig || !('deprecatedFeatures' in serviceConfig)) return false;
+    
+    return serviceConfig.deprecatedFeatures.includes(feature);
+  };
+
+  /**
+   * Get formatted version string
+   */
+  const getFormattedVersion = (): string => {
+    if (!versionInfo) return 'Loading...';
+    
+    const { version, commitHash, buildDate } = versionInfo;
+    const date = new Date(buildDate).toLocaleDateString();
+    
+    return `v${version} (${commitHash}) - ${date}`;
+  };
+
+  /**
+   * Get build environment information
+   */
+  const getBuildInfo = () => {
+    if (!versionInfo) return null;
+    
+    return {
+      ...versionInfo.buildInfo,
+      buildDate: versionInfo.buildDate,
+      commitHash: versionInfo.commitHash,
+    };
+  };
+
+  /**
+   * Check for version mismatches or compatibility issues
+   */
+  const getCompatibilityWarnings = (): string[] => {
+    const warnings: string[] = [];
+    
+    if (!versionInfo || !apiVersions) return warnings;
+
+    // Check for deprecated features
+    Object.entries(apiVersions.compatibility).forEach(([service, config]) => {
+      if ('deprecatedFeatures' in config && config.deprecatedFeatures.length > 0) {
+        warnings.push(
+          `${service} has deprecated features: ${config.deprecatedFeatures.join(', ')}`
+        );
+      }
+    });
+
+    // Check for version mismatches
+    if (versionInfo.version !== apiVersions.portfolio) {
+      warnings.push(
+        `Version mismatch: Portfolio v${versionInfo.version} vs API v${apiVersions.portfolio}`
+      );
+    }
+
+    return warnings;
+  };
+
+  return {
+    // Data
+    versionInfo,
+    apiVersions,
+    isLoading,
+    error,
+    
+    // Utility functions
+    isFeatureAvailable,
+    getApiVersion,
+    isApiFeatureSupported,
+    isApiFeatureDeprecated,
+    getFormattedVersion,
+    getBuildInfo,
+    getCompatibilityWarnings,
+  };
+};
+
+export default useVersionInfo;
