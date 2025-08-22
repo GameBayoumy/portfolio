@@ -1,125 +1,145 @@
 {
-  "timestamp": "2025-08-21T21:37:20.996Z",
+  "timestamp": "2025-08-22T18:15:41.172Z",
+  "bundleAnalysis": {
+    "status": "completed",
+    "totalBundleSize": "2.1 MB",
+    "linkedinBundleSize": "32.46 KB",
+    "linkedinPercentage": "1.51%",
+    "chunkCount": 18,
+    "linkedinChunkCount": 1,
+    "largestChunks": [
+      {
+        "name": "chunks\\b536a0f1-cbd964bae9101ece.js",
+        "size": "652.46 KB"
+      },
+      {
+        "name": "chunks\\479-d31b67d43fd90fd3.js",
+        "size": "523.77 KB"
+      },
+      {
+        "name": "chunks\\app\\page-8154982fa82ec8d2.js",
+        "size": "202.75 KB"
+      },
+      {
+        "name": "chunks\\fd9d1056-6f9c444b6fdcbb28.js",
+        "size": "168.78 KB"
+      },
+      {
+        "name": "chunks\\framework-c38da0a365b9c229.js",
+        "size": "136.7 KB"
+      }
+    ]
+  },
+  "renderingMetrics": {
+    "status": "completed",
+    "components": {
+      "LinkedInVisualizersSection": {
+        "loadTime": 258,
+        "complexity": "high",
+        "status": "excellent"
+      },
+      "ExperienceCard": {
+        "loadTime": 203,
+        "complexity": "medium",
+        "status": "excellent"
+      },
+      "ProfessionalStats": {
+        "loadTime": 119,
+        "complexity": "low",
+        "status": "excellent"
+      },
+      "ProfessionalTimeline": {
+        "loadTime": 332,
+        "complexity": "high",
+        "status": "excellent"
+      },
+      "SkillsRadar": {
+        "loadTime": 323,
+        "complexity": "high",
+        "status": "excellent"
+      },
+      "SkillsMatrix": {
+        "loadTime": 237,
+        "complexity": "medium",
+        "status": "excellent"
+      }
+    },
+    "averageLoadTime": 245.33333333333334,
+    "overallScore": 95
+  },
+  "memoryUsage": {
+    "status": "completed",
+    "currentMemory": {
+      "heapUsed": "4.64 MB",
+      "heapTotal": "5.5 MB",
+      "external": "1.49 MB",
+      "rss": "52.52 MB"
+    },
+    "estimatedComponentMemory": "8.4 MB",
+    "componentBreakdown": [
+      {
+        "component": "LinkedInVisualizersSection",
+        "estimatedSize": "2.5MB"
+      },
+      {
+        "component": "ExperienceCard",
+        "estimatedSize": "0.3MB"
+      },
+      {
+        "component": "ProfessionalStats",
+        "estimatedSize": "0.5MB"
+      },
+      {
+        "component": "ProfessionalTimeline",
+        "estimatedSize": "1.8MB"
+      },
+      {
+        "component": "SkillsRadar",
+        "estimatedSize": "2.1MB"
+      },
+      {
+        "component": "SkillsMatrix",
+        "estimatedSize": "1.2MB"
+      }
+    ]
+  },
+  "recommendations": [
+    {
+      "category": "Caching Strategy",
+      "priority": "medium",
+      "issue": "LinkedIn data fetching optimization",
+      "recommendation": "Implement intelligent caching with stale-while-revalidate strategy",
+      "impact": "Reduce API calls and improve data loading speed"
+    },
+    {
+      "category": "Progressive Enhancement",
+      "priority": "low",
+      "issue": "Enhance user experience during loading",
+      "recommendation": "Add skeleton screens and progressive loading states",
+      "impact": "Improve perceived performance and user satisfaction"
+    }
+  ],
+  "coreWebVitals": {
+    "status": "completed",
+    "metrics": {
+      "firstContentfulPaint": "1463ms",
+      "largestContentfulPaint": "3011ms",
+      "firstInputDelay": "116ms",
+      "cumulativeLayoutShift": "0.153",
+      "timeToInteractive": "2774ms"
+    },
+    "scores": {
+      "fcp": 100,
+      "lcp": 75,
+      "fid": 75,
+      "cls": 75,
+      "tti": 100
+    },
+    "overallScore": 85
+  },
   "summary": {
     "totalTests": 4,
     "completedTests": 4,
-    "overallScore": 88
-  },
-  "results": {
-    "bundleAnalysis": {
-      "status": "completed",
-      "totalBundleSize": "1.86 MB",
-      "linkedinBundleSize": "0 Bytes",
-      "linkedinPercentage": "0.00%",
-      "chunkCount": 10,
-      "linkedinChunkCount": 0,
-      "chunks": []
-    },
-    "loadingPerformance": {
-      "status": "completed",
-      "components": {
-        "LinkedInVisualizersSection": {
-          "loadTime": 356,
-          "complexity": "high",
-          "status": "excellent"
-        },
-        "ExperienceCard": {
-          "loadTime": 202,
-          "complexity": "medium",
-          "status": "excellent"
-        },
-        "ProfessionalStats": {
-          "loadTime": 76,
-          "complexity": "low",
-          "status": "excellent"
-        },
-        "ProfessionalTimeline": {
-          "loadTime": 342,
-          "complexity": "high",
-          "status": "excellent"
-        },
-        "SkillsRadar": {
-          "loadTime": 324,
-          "complexity": "high",
-          "status": "excellent"
-        },
-        "SkillsMatrix": {
-          "loadTime": 202,
-          "complexity": "medium",
-          "status": "excellent"
-        }
-      },
-      "averageLoadTime": 250.33333333333334
-    },
-    "memoryUsage": {
-      "status": "completed",
-      "currentMemory": {
-        "heapUsed": "8.45 MB",
-        "heapTotal": "13.11 MB",
-        "external": "2.54 MB",
-        "rss": "57.88 MB"
-      },
-      "estimatedComponentMemory": "8.4 MB",
-      "componentBreakdown": [
-        {
-          "component": "LinkedInVisualizersSection",
-          "estimatedSize": "2.5MB"
-        },
-        {
-          "component": "ExperienceCard",
-          "estimatedSize": "0.3MB"
-        },
-        {
-          "component": "ProfessionalStats",
-          "estimatedSize": "0.5MB"
-        },
-        {
-          "component": "ProfessionalTimeline",
-          "estimatedSize": "1.8MB"
-        },
-        {
-          "component": "SkillsRadar",
-          "estimatedSize": "2.1MB"
-        },
-        {
-          "component": "SkillsMatrix",
-          "estimatedSize": "1.2MB"
-        }
-      ]
-    },
-    "renderingPerformance": {
-      "status": "completed",
-      "metrics": {
-        "firstContentfulPaint": "1218ms",
-        "largestContentfulPaint": "2778ms",
-        "firstInputDelay": "81ms",
-        "cumulativeLayoutShift": "0.091",
-        "timeToInteractive": "3597ms"
-      },
-      "scores": {
-        "fcp": 100,
-        "lcp": 75,
-        "fid": 100,
-        "cls": 100,
-        "tti": 100
-      },
-      "overallScore": 95
-    },
-    "recommendations": [
-      {
-        "category": "Caching Strategy",
-        "priority": "medium",
-        "issue": "LinkedIn data fetching optimization",
-        "recommendation": "Implement intelligent caching with stale-while-revalidate strategy",
-        "impact": "Reduce API calls and improve data loading speed"
-      },
-      {
-        "category": "Progressive Enhancement",
-        "priority": "low",
-        "issue": "Enhance user experience during loading",
-        "recommendation": "Add skeleton screens and progressive loading states",
-        "impact": "Improve perceived performance and user satisfaction"
-      }
-    ]
+    "overallScore": 90
   }
 }

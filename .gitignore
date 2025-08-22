@@ -39,3 +39,4 @@ templates/
 .next/
 node_modules/
 tsconfig.tsbuildinfo
+.vercel
