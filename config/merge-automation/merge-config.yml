@@ -1,0 +1,147 @@
+# Auto-Merge Configuration
+# This file defines the rules and settings for the intelligent PR auto-merge system
+
+merge_automation:
+  # Global settings
+  enabled: true
+  dry_run: false
+  
+  # Labels that trigger auto-merge
+  trigger_labels:
+    - "auto-merge"
+    - "ready-to-merge"
+    - "merge-when-ready"
+  
+  # Labels that block auto-merge
+  blocking_labels:
+    - "do-not-merge"
+    - "wip"
+    - "draft"
+    - "hold"
+    - "needs-work"
+  
+  # Merge strategies
+  merge_strategies:
+    default: "merge"
+    by_label:
+      squash: "squash"
+      rebase: "rebase"
+      merge: "merge"
+  
+  # Quality gates - all must pass for auto-merge
+  quality_gates:
+    required_status_checks: true
+    required_reviews: true
+    branch_protection_compliance: true
+    no_merge_conflicts: true
+    not_draft: true
+    deployment_preview_success: false  # Optional
+  
+  # Review requirements
+  reviews:
+    minimum_approvals: 1
+    dismiss_stale_reviews: true
+    require_code_owner_reviews: true
+    require_review_from_recent_pushers: false
+  
+  # Status check requirements
+  status_checks:
+    strict: true
+    required_contexts:
+      - "ci/build"
+      - "ci/test"
+      - "ci/lint"
+      - "security/scan"
+    ignore_contexts:
+      - "deploy/preview"  # Optional deployment checks
+  
+  # Branch protection validation
+  branch_protection:
+    enforce_admins: false
+    required_pull_request_reviews: true
+    required_status_checks: true
+    restrictions: false
+  
+  # Size limits
+  pr_size_limits:
+    max_changes: 1000
+    max_files: 50
+    warn_threshold: 500
+  
+  # Time restrictions
+  time_restrictions:
+    business_hours_only: false
+    timezone: "UTC"
+    allowed_hours:
+      start: "09:00"
+      end: "17:00"
+    allowed_days:
+      - "monday"
+      - "tuesday"
+      - "wednesday"
+      - "thursday"
+      - "friday"
+  
+  # Deployment validation
+  deployment:
+    require_preview_success: false
+    preview_environments:
+      - "preview"
+      - "staging"
+    timeout_minutes: 30
+  
+  # Notification settings
+  notifications:
+    success:
+      comment: true
+      slack: false
+      email: false
+    failure:
+      comment: true
+      slack: true
+      email: false
+    warning:
+      comment: true
+      slack: false
+      email: false
+  
+  # Error handling
+  error_handling:
+    max_retries: 3
+    retry_delay_minutes: 5
+    auto_remove_label_on_failure: true
+    create_issue_on_persistent_failure: false
+  
+  # Security settings
+  security:
+    require_signed_commits: false
+    block_force_pushes: true
+    scan_for_secrets: true
+    vulnerability_check: true
+  
+  # Custom rules (GitHub expressions)
+  custom_rules:
+    # Example: Block auto-merge for PRs from forks
+    - condition: "github.event.pull_request.head.repo.full_name != github.repository"
+      action: "block"
+      message: "Auto-merge not allowed for PRs from forks"
+    
+    # Example: Require additional approval for large PRs
+    - condition: "github.event.pull_request.additions + github.event.pull_request.deletions > 500"
+      action: "require_additional_approval"
+      message: "Large PRs require additional approval"
+  
+  # Integration settings
+  integrations:
+    sonarqube:
+      enabled: false
+      quality_gate_required: true
+    
+    snyk:
+      enabled: false
+      block_on_high_severity: true
+    
+    codecov:
+      enabled: false
+      minimum_coverage: 80
+      coverage_drop_threshold: 5

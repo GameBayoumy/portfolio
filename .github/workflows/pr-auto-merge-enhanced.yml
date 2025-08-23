@@ -1,0 +1,578 @@
+name: Intelligent PR Auto-Merge System
+on:
+  pull_request:
+    types: [labeled, unlabeled, synchronize]
+  pull_request_review:
+    types: [submitted, dismissed]
+  check_suite:
+    types: [completed]
+  status: {}
+
+jobs:
+  validate-merge-readiness:
+    name: Validate Merge Readiness
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'pull_request' || 
+      github.event_name == 'pull_request_review' ||
+      github.event_name == 'check_suite' ||
+      github.event_name == 'status'
+    outputs:
+      can-merge: ${{ steps.validation.outputs.can-merge }}
+      validation-report: ${{ steps.validation.outputs.report }}
+      merge-strategy: ${{ steps.validation.outputs.merge-strategy }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: |
+          npm ci
+          # Install GitHub CLI if not available
+          if ! command -v gh &> /dev/null; then
+            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+            sudo apt update && sudo apt install gh -y
+          fi
+
+      - name: Comprehensive Merge Validation
+        id: validation
+        uses: actions/github-script@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          script: |
+            const { execSync } = require('child_process');
+            
+            // Helper function to execute shell commands
+            function execCommand(command) {
+              try {
+                return execSync(command, { encoding: 'utf8', stdio: 'pipe' }).trim();
+              } catch (error) {
+                console.log(`Command failed: ${command}`);
+                console.log(`Error: ${error.message}`);
+                return null;
+              }
+            }
+
+            // Get PR information
+            const prNumber = context.issue.number;
+            if (!prNumber) {
+              console.log('No PR number found, skipping validation');
+              return;
+            }
+
+            console.log(`🔍 Validating PR #${prNumber} for auto-merge readiness`);
+
+            // Get PR data using GitHub CLI
+            const prDataRaw = execCommand(`gh pr view ${prNumber} --json number,title,body,state,mergeable,labels,reviews,statusCheckRollupState,headRefName,baseRefName,author,isDraft,additions,deletions,changedFiles,reviewDecision,mergeStateStatus`);
+            
+            if (!prDataRaw) {
+              throw new Error('Failed to fetch PR data');
+            }
+
+            const prData = JSON.parse(prDataRaw);
+            console.log('PR Data:', JSON.stringify(prData, null, 2));
+
+            // Initialize validation report
+            const validationReport = {
+              timestamp: new Date().toISOString(),
+              prNumber: prNumber,
+              title: prData.title,
+              author: prData.author.login,
+              validations: {},
+              canMerge: false,
+              reasons: [],
+              warnings: [],
+              mergeStrategy: 'merge'
+            };
+
+            // 1. Check if auto-merge label is present
+            const hasAutoMergeLabel = prData.labels.some(label => 
+              ['auto-merge', 'ready-to-merge', 'merge-when-ready'].includes(label.name.toLowerCase())
+            );
+
+            validationReport.validations.autoMergeLabel = {
+              passed: hasAutoMergeLabel,
+              message: hasAutoMergeLabel ? 'Auto-merge label found' : 'No auto-merge label present'
+            };
+
+            if (!hasAutoMergeLabel) {
+              validationReport.reasons.push('Missing auto-merge label');
+              core.setOutput('can-merge', 'false');
+              core.setOutput('report', JSON.stringify(validationReport));
+              return;
+            }
+
+            // 2. Check if PR is in draft state
+            validationReport.validations.draftStatus = {
+              passed: !prData.isDraft,
+              message: prData.isDraft ? 'PR is in draft state' : 'PR is not a draft'
+            };
+
+            if (prData.isDraft) {
+              validationReport.reasons.push('PR is in draft state');
+            }
+
+            // 3. Check PR state and mergeability
+            validationReport.validations.prState = {
+              passed: prData.state === 'OPEN',
+              message: `PR state: ${prData.state}`
+            };
+
+            validationReport.validations.mergeable = {
+              passed: prData.mergeable === 'MERGEABLE',
+              message: `Mergeable status: ${prData.mergeable || 'UNKNOWN'}`
+            };
+
+            if (prData.state !== 'OPEN') {
+              validationReport.reasons.push(`PR is not open (state: ${prData.state})`);
+            }
+
+            if (prData.mergeable === 'CONFLICTING') {
+              validationReport.reasons.push('PR has merge conflicts');
+            }
+
+            // 4. Check status checks
+            const statusChecksPassed = prData.statusCheckRollupState === 'SUCCESS';
+            validationReport.validations.statusChecks = {
+              passed: statusChecksPassed,
+              message: `Status checks: ${prData.statusCheckRollupState || 'PENDING'}`
+            };
+
+            if (!statusChecksPassed && prData.statusCheckRollupState !== 'PENDING') {
+              validationReport.reasons.push(`Status checks failed: ${prData.statusCheckRollupState}`);
+            }
+
+            // 5. Check required reviews
+            const reviewDecision = prData.reviewDecision;
+            const reviewsPassed = reviewDecision === 'APPROVED';
+            
+            validationReport.validations.reviews = {
+              passed: reviewsPassed,
+              message: `Review decision: ${reviewDecision || 'PENDING'}`
+            };
+
+            if (!reviewsPassed) {
+              validationReport.reasons.push(`Required reviews not approved: ${reviewDecision}`);
+            }
+
+            // 6. Check branch protection rules
+            try {
+              const protectionRaw = execCommand(`gh api /repos/:owner/:repo/branches/${prData.baseRefName}/protection`);
+              if (protectionRaw) {
+                const protection = JSON.parse(protectionRaw);
+                
+                validationReport.validations.branchProtection = {
+                  passed: true,
+                  message: 'Branch protection rules validated',
+                  details: {
+                    requiresStatusChecks: protection.required_status_checks?.strict || false,
+                    requiresReviews: protection.required_pull_request_reviews?.required_approving_review_count > 0,
+                    enforceAdmins: protection.enforce_admins?.enabled || false
+                  }
+                };
+
+                // Validate specific protection requirements
+                if (protection.required_status_checks && protection.required_status_checks.contexts.length > 0) {
+                  const requiredContexts = protection.required_status_checks.contexts;
+                  console.log(`Required status check contexts: ${requiredContexts.join(', ')}`);
+                }
+
+                if (protection.required_pull_request_reviews) {
+                  const requiredApprovals = protection.required_pull_request_reviews.required_approving_review_count;
+                  console.log(`Required approving reviews: ${requiredApprovals}`);
+                }
+              }
+            } catch (error) {
+              console.log('Branch protection check failed:', error.message);
+              validationReport.validations.branchProtection = {
+                passed: false,
+                message: 'Failed to validate branch protection rules',
+                error: error.message
+              };
+            }
+
+            // 7. Check deployment preview (if applicable)
+            try {
+              const deploymentsRaw = execCommand(`gh api /repos/:owner/:repo/deployments?ref=${prData.headRefName}&per_page=10`);
+              if (deploymentsRaw) {
+                const deployments = JSON.parse(deploymentsRaw);
+                const activeDeployments = deployments.filter(d => d.environment === 'preview' || d.environment === 'staging');
+                
+                if (activeDeployments.length > 0) {
+                  const latestDeployment = activeDeployments[0];
+                  const statusRaw = execCommand(`gh api /repos/:owner/:repo/deployments/${latestDeployment.id}/statuses`);
+                  
+                  if (statusRaw) {
+                    const statuses = JSON.parse(statusRaw);
+                    const latestStatus = statuses[0];
+                    
+                    validationReport.validations.deploymentPreview = {
+                      passed: latestStatus.state === 'success',
+                      message: `Deployment preview: ${latestStatus.state}`,
+                      url: latestStatus.target_url
+                    };
+
+                    if (latestStatus.state !== 'success') {
+                      validationReport.reasons.push(`Deployment preview failed: ${latestStatus.state}`);
+                    }
+                  }
+                } else {
+                  validationReport.validations.deploymentPreview = {
+                    passed: true,
+                    message: 'No deployment preview required'
+                  };
+                }
+              }
+            } catch (error) {
+              console.log('Deployment preview check failed:', error.message);
+              validationReport.validations.deploymentPreview = {
+                passed: true,
+                message: 'Deployment preview check skipped',
+                warning: error.message
+              };
+            }
+
+            // 8. Additional quality checks
+            // Check for breaking changes
+            const hasBreakingLabel = prData.labels.some(label => 
+              label.name.toLowerCase().includes('breaking')
+            );
+
+            if (hasBreakingLabel) {
+              validationReport.warnings.push('PR contains breaking changes');
+            }
+
+            // Check PR size
+            const totalChanges = prData.additions + prData.deletions;
+            if (totalChanges > 1000) {
+              validationReport.warnings.push(`Large PR: ${totalChanges} lines changed`);
+            }
+
+            // Determine merge strategy
+            let mergeStrategy = 'merge';
+            if (prData.labels.some(label => label.name.toLowerCase() === 'squash')) {
+              mergeStrategy = 'squash';
+            } else if (prData.labels.some(label => label.name.toLowerCase() === 'rebase')) {
+              mergeStrategy = 'rebase';
+            }
+
+            // Final validation decision
+            const allValidationsPassed = Object.values(validationReport.validations)
+              .every(validation => validation.passed);
+
+            validationReport.canMerge = allValidationsPassed && validationReport.reasons.length === 0;
+            validationReport.mergeStrategy = mergeStrategy;
+
+            console.log('📊 Validation Report:');
+            console.log(JSON.stringify(validationReport, null, 2));
+
+            // Set outputs
+            core.setOutput('can-merge', validationReport.canMerge.toString());
+            core.setOutput('report', JSON.stringify(validationReport));
+            core.setOutput('merge-strategy', mergeStrategy);
+
+      - name: Post Validation Status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const report = JSON.parse('${{ steps.validation.outputs.report }}' || '{}');
+            if (!report.prNumber) return;
+
+            const canMerge = '${{ steps.validation.outputs.can-merge }}' === 'true';
+            
+            // Create status comment
+            let comment = `## 🤖 Auto-Merge Validation Report\n\n`;
+            comment += `**Status**: ${canMerge ? '✅ Ready to merge' : '❌ Not ready to merge'}\n`;
+            comment += `**Timestamp**: ${report.timestamp}\n`;
+            comment += `**Merge Strategy**: ${report.mergeStrategy}\n\n`;
+
+            comment += `### Validation Results\n\n`;
+            for (const [key, validation] of Object.entries(report.validations || {})) {
+              const icon = validation.passed ? '✅' : '❌';
+              comment += `${icon} **${key}**: ${validation.message}\n`;
+              if (validation.details) {
+                comment += `   - Details: ${JSON.stringify(validation.details)}\n`;
+              }
+              if (validation.url) {
+                comment += `   - URL: ${validation.url}\n`;
+              }
+            }
+
+            if (report.reasons && report.reasons.length > 0) {
+              comment += `\n### ❌ Blocking Issues\n\n`;
+              for (const reason of report.reasons) {
+                comment += `- ${reason}\n`;
+              }
+            }
+
+            if (report.warnings && report.warnings.length > 0) {
+              comment += `\n### ⚠️ Warnings\n\n`;
+              for (const warning of report.warnings) {
+                comment += `- ${warning}\n`;
+              }
+            }
+
+            comment += `\n---\n*Auto-merge will proceed automatically when all validations pass.*`;
+
+            // Post comment
+            await github.rest.issues.createComment({
+              issue_number: report.prNumber,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  auto-merge:
+    name: Execute Auto-Merge
+    needs: validate-merge-readiness
+    runs-on: ubuntu-latest
+    if: needs.validate-merge-readiness.outputs.can-merge == 'true'
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup GitHub CLI
+        run: |
+          if ! command -v gh &> /dev/null; then
+            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+            sudo apt update && sudo apt install gh -y
+          fi
+
+      - name: Execute Merge
+        id: merge
+        uses: actions/github-script@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          script: |
+            const { execSync } = require('child_process');
+            
+            function execCommand(command) {
+              try {
+                return execSync(command, { encoding: 'utf8', stdio: 'pipe' }).trim();
+              } catch (error) {
+                console.log(`Command failed: ${command}`);
+                console.log(`Error: ${error.message}`);
+                throw error;
+              }
+            }
+
+            const prNumber = context.issue.number;
+            if (!prNumber) {
+              console.log('No PR number found, skipping merge');
+              return;
+            }
+
+            const report = JSON.parse('${{ needs.validate-merge-readiness.outputs.validation-report }}');
+            const mergeStrategy = '${{ needs.validate-merge-readiness.outputs.merge-strategy }}';
+
+            console.log(`🚀 Executing auto-merge for PR #${prNumber} using ${mergeStrategy} strategy`);
+
+            try {
+              // Get PR information for commit message
+              const prData = JSON.parse(execCommand(`gh pr view ${prNumber} --json number,title,body,headRefName,baseRefName,author`));
+
+              // Create merge commit message
+              let commitTitle = prData.title;
+              if (!commitTitle.includes(`#${prNumber}`)) {
+                commitTitle += ` (#${prNumber})`;
+              }
+
+              let commitBody = '';
+              if (prData.body && prData.body.trim()) {
+                commitBody = prData.body.trim();
+              }
+
+              // Add merge metadata
+              commitBody += `\n\nMerged-By: GitHub Actions Auto-Merge System`;
+              commitBody += `\nMerge-Strategy: ${mergeStrategy}`;
+              commitBody += `\nValidation-Timestamp: ${report.timestamp}`;
+
+              // Execute merge based on strategy
+              let mergeCommand;
+              switch (mergeStrategy) {
+                case 'squash':
+                  mergeCommand = `gh pr merge ${prNumber} --squash --subject "${commitTitle}" --body "${commitBody}"`;
+                  break;
+                case 'rebase':
+                  mergeCommand = `gh pr merge ${prNumber} --rebase`;
+                  break;
+                default:
+                  mergeCommand = `gh pr merge ${prNumber} --merge --subject "${commitTitle}" --body "${commitBody}"`;
+              }
+
+              console.log(`Executing: ${mergeCommand}`);
+              const mergeResult = execCommand(mergeCommand);
+              console.log(`Merge result: ${mergeResult}`);
+
+              // Post success comment
+              const successComment = `## ✅ Auto-Merge Successful\n\n` +
+                `The PR has been automatically merged using the **${mergeStrategy}** strategy.\n\n` +
+                `**Merge Details:**\n` +
+                `- Strategy: ${mergeStrategy}\n` +
+                `- Timestamp: ${new Date().toISOString()}\n` +
+                `- Merged by: GitHub Actions Auto-Merge System\n\n` +
+                `Thank you @${prData.author.login} for your contribution! 🎉`;
+
+              await github.rest.issues.createComment({
+                issue_number: prNumber,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: successComment
+              });
+
+              core.setOutput('merge-successful', 'true');
+              core.setOutput('merge-sha', 'unknown'); // GitHub CLI doesn't return SHA directly
+
+            } catch (error) {
+              console.error('Merge failed:', error.message);
+              
+              // Post failure comment
+              const failureComment = `## ❌ Auto-Merge Failed\n\n` +
+                `The automatic merge failed with the following error:\n\n` +
+                `\`\`\`\n${error.message}\n\`\`\`\n\n` +
+                `**Next Steps:**\n` +
+                `1. Check for merge conflicts and resolve them\n` +
+                `2. Ensure all required status checks are passing\n` +
+                `3. Verify the PR is still in a mergeable state\n` +
+                `4. Remove and re-add the auto-merge label to retry\n\n` +
+                `Please review the error and take appropriate action.`;
+
+              await github.rest.issues.createComment({
+                issue_number: prNumber,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: failureComment
+              });
+
+              // Remove auto-merge label on failure
+              try {
+                await github.rest.issues.removeLabel({
+                  issue_number: prNumber,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: 'auto-merge'
+                });
+              } catch (labelError) {
+                console.log('Failed to remove auto-merge label:', labelError.message);
+              }
+
+              throw error;
+            }
+
+      - name: Post-Merge Cleanup
+        if: steps.merge.outputs.merge-successful == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.issue.number;
+            if (!prNumber) return;
+
+            console.log('🧹 Performing post-merge cleanup');
+
+            try {
+              // Remove auto-merge related labels
+              const labelsToRemove = ['auto-merge', 'ready-to-merge', 'merge-when-ready'];
+              
+              for (const label of labelsToRemove) {
+                try {
+                  await github.rest.issues.removeLabel({
+                    issue_number: prNumber,
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name: label
+                  });
+                  console.log(`Removed label: ${label}`);
+                } catch (error) {
+                  // Label might not exist, continue
+                  console.log(`Label ${label} not found or already removed`);
+                }
+              }
+
+              // Add merged label
+              await github.rest.issues.addLabels({
+                issue_number: prNumber,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                labels: ['merged']
+              });
+
+              console.log('✅ Post-merge cleanup completed');
+
+            } catch (error) {
+              console.log('⚠️ Post-merge cleanup failed:', error.message);
+              // Don't fail the job for cleanup issues
+            }
+
+  failure-handling:
+    name: Handle Merge Failures
+    needs: [validate-merge-readiness, auto-merge]
+    runs-on: ubuntu-latest
+    if: failure() && needs.validate-merge-readiness.outputs.can-merge == 'true'
+    steps:
+      - name: Handle Failure
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.issue.number;
+            if (!prNumber) return;
+
+            console.log('🚨 Handling auto-merge failure');
+
+            // Create detailed failure report
+            const failureComment = `## 🚨 Auto-Merge System Failure\n\n` +
+              `The auto-merge system encountered an unexpected error during the merge process.\n\n` +
+              `**Failure Details:**\n` +
+              `- Workflow Run: [${context.runId}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n` +
+              `- Timestamp: ${new Date().toISOString()}\n` +
+              `- Event: ${context.eventName}\n\n` +
+              `**Recovery Actions:**\n` +
+              `1. Review the workflow logs for detailed error information\n` +
+              `2. Check if there were any system-level issues\n` +
+              `3. Verify all prerequisites are still met\n` +
+              `4. Consider manual merge if the issue persists\n\n` +
+              `The auto-merge label has been removed. Please investigate and retry if appropriate.\n\n` +
+              `---\n` +
+              `*If this issue persists, please contact the repository maintainers.*`;
+
+            await github.rest.issues.createComment({
+              issue_number: prNumber,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: failureComment
+            });
+
+            // Remove auto-merge label and add failure label
+            try {
+              await github.rest.issues.removeLabel({
+                issue_number: prNumber,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: 'auto-merge'
+              });
+
+              await github.rest.issues.addLabels({
+                issue_number: prNumber,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                labels: ['auto-merge-failed']
+              });
+            } catch (error) {
+              console.log('Failed to update labels:', error.message);
+            }

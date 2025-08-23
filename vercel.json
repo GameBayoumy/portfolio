@@ -1,10 +1,16 @@
 {
-  "buildCommand": "bun install --frozen-lockfile && bun run build",
+  "buildCommand": "node scripts/vercel-deploy-hook.js pre && bun install --frozen-lockfile && bun run ci:build",
   "outputDirectory": ".next",
   "framework": "nextjs", 
   "installCommand": "bun install --frozen-lockfile",
   "devCommand": "bun run dev",
-  "regions": ["iad1"],
+  "regions": ["iad1", "sfo1", "fra1"],
+  "functions": {
+    "src/app/api/**/*.{js,ts}": {
+      "runtime": "nodejs20.x",
+      "maxDuration": 10
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",
@@ -84,14 +90,28 @@
   "env": {
     "NODE_ENV": "production",
     "NEXT_TELEMETRY_DISABLED": "1",
-    "SKIP_ENV_VALIDATION": "1"
+    "SKIP_ENV_VALIDATION": "1",
+    "VERCEL_ENV": "@vercel-env"
   },
   "build": {
     "env": {
       "NODE_VERSION": "20.x",
       "BUN_VERSION": "latest",
       "SKIP_ENV_VALIDATION": "1",
-      "NEXT_TELEMETRY_DISABLED": "1"
+      "NEXT_TELEMETRY_DISABLED": "1",
+      "ANALYZE": "false"
     }
-  }
+  },
+  "github": {
+    "enabled": true,
+    "autoAlias": true,
+    "autoJobCancelation": true
+  },
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD .",
+  "crons": [
+    {
+      "path": "/api/health-check",
+      "schedule": "0 */6 * * *"
+    }
+  ]
 }

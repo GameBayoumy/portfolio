@@ -1,0 +1,205 @@
+{
+  "buildCommand": "node scripts/vercel-deploy-hook.js pre && bun install --frozen-lockfile && bun run ci:build",
+  "outputDirectory": ".next",
+  "framework": "nextjs", 
+  "installCommand": "bun install --frozen-lockfile",
+  "devCommand": "bun run dev",
+  "regions": ["iad1", "sfo1", "fra1"],
+  "functions": {
+    "src/app/api/**/*.{js,ts}": {
+      "runtime": "nodejs20.x",
+      "maxDuration": 10,
+      "memory": 1024,
+      "regions": ["iad1", "sfo1", "fra1"]
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-Content-Type-Options", 
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=*, microphone=*, geolocation=*, xr-spatial-tracking=*"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains; preload"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' *.vercel-analytics.com *.sentry.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' *.github.com *.linkedin.com *.sentry.io *.vercel-analytics.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "s-maxage=300, stale-while-revalidate=86400"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "https://*.sharifbayoumy.com"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization, X-Requested-With"
+        }
+      ]
+    },
+    {
+      "source": "/_next/static/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        },
+        {
+          "key": "Cross-Origin-Resource-Policy",
+          "value": "cross-origin"
+        }
+      ]
+    },
+    {
+      "source": "/fonts/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        },
+        {
+          "key": "Cross-Origin-Resource-Policy",
+          "value": "cross-origin"
+        }
+      ]
+    },
+    {
+      "source": "/models/(.*\\.(glb|gltf|fbx|obj|3ds|dae))",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000, stale-while-revalidate=86400"
+        },
+        {
+          "key": "Cross-Origin-Resource-Policy",
+          "value": "cross-origin"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    },
+    {
+      "source": "/textures/(.*\\.(jpg|jpeg|png|webp|avif))",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000, stale-while-revalidate=86400"
+        },
+        {
+          "key": "Cross-Origin-Resource-Policy",
+          "value": "cross-origin"
+        }
+      ]
+    },
+    {
+      "source": "/(.*\\.(ico|jpg|jpeg|png|webp|avif|svg|gif))",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=604800"
+        }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/home",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/portfolio",
+      "destination": "/#projects",
+      "permanent": true
+    },
+    {
+      "source": "/resume",
+      "destination": "/#about",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/robots.txt",
+      "destination": "/api/robots"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
+    },
+    {
+      "source": "/manifest.json",
+      "destination": "/api/manifest"
+    },
+    {
+      "source": "/health",
+      "destination": "/api/health-check"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "NEXT_TELEMETRY_DISABLED": "1",
+    "SKIP_ENV_VALIDATION": "1",
+    "VERCEL_ENV": "@vercel-env"
+  },
+  "build": {
+    "env": {
+      "NODE_VERSION": "20.x",
+      "BUN_VERSION": "latest",
+      "SKIP_ENV_VALIDATION": "1",
+      "NEXT_TELEMETRY_DISABLED": "1",
+      "ANALYZE": "false",
+      "NEXT_BUILD_ID": "@vercel-git-commit-sha",
+      "VERCEL_GIT_COMMIT_SHA": "@vercel-git-commit-sha",
+      "VERCEL_GIT_COMMIT_REF": "@vercel-git-commit-ref",
+      "VERCEL_GIT_COMMIT_MESSAGE": "@vercel-git-commit-message",
+      "VERCEL_GIT_COMMIT_AUTHOR_NAME": "@vercel-git-commit-author-name",
+      "VERCEL_GIT_REPO_SLUG": "@vercel-git-repo-slug",
+      "VERCEL_GIT_REPO_OWNER": "@vercel-git-repo-owner"
+    }
+  },
+  "github": {
+    "enabled": true,
+    "autoAlias": true,
+    "autoJobCancelation": true
+  },
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD . || (echo 'Changes detected, proceeding with build' && exit 1)",
+  "crons": [
+    {
+      "path": "/api/health-check",
+      "schedule": "0 */6 * * *"
+    }
+  ],
+  "trailingSlash": false,
+  "cleanUrls": true,
+  "public": false
+}
