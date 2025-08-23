@@ -1,15 +1,23 @@
-name: 'Setup Node.js with Caching'
-description: 'Set up Node.js with optimized caching for dependencies and build artifacts'
+name: 'Setup Node.js/Bun with Caching'
+description: 'Set up Node.js/Bun with optimized caching for dependencies and build artifacts'
 
 inputs:
   node-version:
     description: 'Node.js version to use'
     required: false
     default: '18.17.0'
-  cache-dependency-path:
-    description: 'Path to package-lock.json or yarn.lock file'
+  bun-version:
+    description: 'Bun version to use'
     required: false
-    default: '**/package-lock.json'
+    default: 'latest'
+  use-bun:
+    description: 'Whether to use Bun instead of npm'
+    required: false
+    default: 'true'
+  cache-dependency-path:
+    description: 'Path to lockfile (bun.lockb, package-lock.json, etc.)'
+    required: false
+    default: '**/bun.lockb'
   install-dependencies:
     description: 'Whether to install dependencies'
     required: false
@@ -22,36 +30,57 @@ outputs:
   node-version:
     description: 'The Node.js version that was installed'
     value: ${{ steps.setup-node.outputs.node-version }}
+  bun-version:
+    description: 'The Bun version that was installed'
+    value: ${{ steps.setup-bun.outputs.bun-version }}
 
 runs:
   using: 'composite'
   steps:
     - name: Setup Node.js
       id: setup-node
-      uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
+      uses: actions/setup-node@0a44ba7841725637a19e28fa30b79a866c81b0a6 # v4.0.4
       with:
         node-version: ${{ inputs.node-version }}
         check-latest: true
-        cache: 'npm'
+
+    - name: Setup Bun
+      id: setup-bun
+      if: inputs.use-bun == 'true'
+      uses: oven-sh/setup-bun@4bc047ad259df6fc24a6c9b0f9a0cb08cf17fbe5 # v2
+      with:
+        bun-version: ${{ inputs.bun-version }}
 
     - name: Cache Dependencies and Build
       id: cache-deps
       uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4.1.2
       with:
         path: |
+          ~/.bun/install/cache
           ~/.npm
           node_modules
           .next/cache
-        key: ${{ runner.os }}-node-${{ inputs.node-version }}-${{ hashFiles(inputs.cache-dependency-path) }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx', '**/*.json') }}
+        key: ${{ runner.os }}-${{ inputs.use-bun == 'true' && 'bun' || 'node' }}-${{ inputs.node-version }}-${{ hashFiles(inputs.cache-dependency-path) }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx', '**/*.json') }}
         restore-keys: |
-          ${{ runner.os }}-node-${{ inputs.node-version }}-${{ hashFiles(inputs.cache-dependency-path) }}-
-          ${{ runner.os }}-node-${{ inputs.node-version }}-
-          ${{ runner.os }}-node-
+          ${{ runner.os }}-${{ inputs.use-bun == 'true' && 'bun' || 'node' }}-${{ inputs.node-version }}-${{ hashFiles(inputs.cache-dependency-path) }}-
+          ${{ runner.os }}-${{ inputs.use-bun == 'true' && 'bun' || 'node' }}-${{ inputs.node-version }}-
+          ${{ runner.os }}-${{ inputs.use-bun == 'true' && 'bun' || 'node' }}-
 
-    - name: Install Dependencies
-      if: inputs.install-dependencies == 'true' && steps.cache-deps.outputs.cache-hit != 'true'
+    - name: Install Dependencies with Bun
+      if: inputs.install-dependencies == 'true' && inputs.use-bun == 'true' && steps.cache-deps.outputs.cache-hit != 'true'
       shell: bash
       run: |
+        echo "Installing dependencies with Bun..."
+        bun install --frozen-lockfile
+      env:
+        CI: true
+        FORCE_COLOR: 1
+
+    - name: Install Dependencies with npm
+      if: inputs.install-dependencies == 'true' && inputs.use-bun != 'true' && steps.cache-deps.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        echo "Installing dependencies with npm..."
         npm ci --prefer-offline --no-audit --frozen-lockfile
       env:
         CI: true
@@ -61,7 +90,13 @@ runs:
       shell: bash
       run: |
         echo "Node.js version: $(node --version)"
-        echo "npm version: $(npm --version)"
+        if [ "${{ inputs.use-bun }}" = "true" ]; then
+          echo "Bun version: $(bun --version)"
+          echo "Package manager: Bun"
+        else
+          echo "npm version: $(npm --version)"
+          echo "Package manager: npm"
+        fi
         echo "Cache hit: ${{ steps.cache-deps.outputs.cache-hit }}"
         
         # Check if node_modules exists and has content

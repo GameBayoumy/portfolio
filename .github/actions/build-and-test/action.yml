@@ -2,6 +2,10 @@ name: 'Build and Test'
 description: 'Run linting, type checking, testing, and build processes with proper error handling'
 
 inputs:
+  use-bun:
+    description: 'Whether to use Bun instead of npm'
+    required: false
+    default: 'true'
   run-lint:
     description: 'Whether to run ESLint'
     required: false
@@ -46,7 +50,13 @@ runs:
       shell: bash
       run: |
         echo "Running ESLint..."
-        if npm run lint; then
+        if [ "${{ inputs.use-bun }}" = "true" ]; then
+          CMD="bun run lint"
+        else
+          CMD="npm run lint"
+        fi
+        
+        if $CMD; then
           echo "✅ Linting passed"
         else
           echo "❌ Linting failed"
@@ -62,7 +72,13 @@ runs:
       shell: bash
       run: |
         echo "Running TypeScript type check..."
-        if npm run type-check; then
+        if [ "${{ inputs.use-bun }}" = "true" ]; then
+          CMD="bun run type-check"
+        else
+          CMD="npm run type-check"
+        fi
+        
+        if $CMD; then
           echo "✅ Type checking passed"
         else
           echo "❌ Type checking failed"
@@ -78,7 +94,13 @@ runs:
       shell: bash
       run: |
         echo "Running tests..."
-        if npm test; then
+        if [ "${{ inputs.use-bun }}" = "true" ]; then
+          CMD="bun test"
+        else
+          CMD="npm test"
+        fi
+        
+        if $CMD; then
           echo "✅ Tests passed"
         else
           echo "❌ Tests failed"
@@ -94,7 +116,13 @@ runs:
       shell: bash
       run: |
         echo "Building application..."
-        if npm run build; then
+        if [ "${{ inputs.use-bun }}" = "true" ]; then
+          CMD="bun run build"
+        else
+          CMD="npm run build"
+        fi
+        
+        if $CMD; then
           echo "✅ Build completed successfully"
           
           # Check build output
@@ -149,4 +177,5 @@ runs:
         fi
         
         echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Package Manager**: ${{ inputs.use-bun == 'true' && 'Bun' || 'npm' }}" >> $GITHUB_STEP_SUMMARY
         echo "**Completed at**: $(date -u)" >> $GITHUB_STEP_SUMMARY
