@@ -1,9 +1,9 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "bun run build",
   "outputDirectory": ".next",
   "framework": "nextjs",
-  "installCommand": "npm install --legacy-peer-deps",
-  "devCommand": "npm run dev",
+  "installCommand": "bun install",
+  "devCommand": "bun run dev",
   "regions": ["iad1"],
   "headers": [
     {
@@ -87,7 +87,13 @@
   },
   "build": {
     "env": {
-      "NODE_VERSION": "18"
+      "NODE_VERSION": "18",
+      "BUN_VERSION": "latest"
+    }
+  },
+  "functions": {
+    "app/api/**": {
+      "runtime": "nodejs18.x"
     }
   }
 }

@@ -195,7 +195,7 @@ describe('LinkedIn Integration - Comprehensive Test Suite', () => {
       });
 
       it('handles missing company logo gracefully', () => {
-        const positionWithoutLogo = { ...mockPosition, companyLogo: undefined };
+        const positionWithoutLogo = { ...mockPosition, companyLogo: mockPosition.company.charAt(0) };
         render(<ExperienceCard position={positionWithoutLogo} index={0} />);
         
         // Should show company initial
@@ -213,7 +213,14 @@ describe('LinkedIn Integration - Comprehensive Test Suite', () => {
 
     describe('ProfessionalStats', () => {
       it('renders all stats when data is provided', () => {
-        render(<ProfessionalStats stats={mockProfessionalStats} loading={false} />);
+        const fullStats = { 
+          ...mockProfessionalStats, 
+          totalEducation: 2, 
+          totalCertifications: 3, 
+          totalConnections: 500, 
+          skillEndorsements: 25 
+        };
+        render(<ProfessionalStats stats={fullStats} loading={false} />);
         
         expect(screen.getByText(mockProfessionalStats.totalExperience.toString())).toBeInTheDocument();
         expect(screen.getByText(mockProfessionalStats.totalPositions.toString())).toBeInTheDocument();
@@ -240,6 +247,10 @@ describe('LinkedIn Integration - Comprehensive Test Suite', () => {
           ...mockProfessionalStats,
           profileViews: 12500,
           totalEndorsements: 1250,
+          totalEducation: 2,
+          totalCertifications: 3,
+          totalConnections: 500,
+          skillEndorsements: 25,
         };
         
         render(<ProfessionalStats stats={statsWithLargeNumbers} loading={false} />);
@@ -314,8 +325,8 @@ describe('LinkedIn Integration - Comprehensive Test Suite', () => {
         );
         
         if (firstExpandButton) {
-          await user.click(firstExpandButton);
-          await waitFor(() => {
+          user.click(firstExpandButton);
+          waitFor(() => {
             expect(screen.getByText('Key Achievements')).toBeInTheDocument();
           });
         }

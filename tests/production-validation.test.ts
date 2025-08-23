@@ -117,7 +117,7 @@ class ProductionValidator {
       message: isPerformant 
         ? 'Performance metrics within acceptable ranges'
         : 'Some performance metrics need attention',
-      metrics
+      metrics: metrics as unknown as Record<string, number>
     };
   }
 
@@ -314,7 +314,8 @@ class ProductionValidator {
 }
 
 // Export for testing
-export { ProductionValidator, ValidationResult, PerformanceMetrics };
+export type { ValidationResult, PerformanceMetrics };
+export { ProductionValidator };
 
 // Run validation if called directly
 if (require.main === module) {
