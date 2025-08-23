@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: '18.17.0'
+  NODE_VERSION: '20.x'
   BUN_VERSION: 'latest'
   NEXT_TELEMETRY_DISABLED: 1
   CI: true

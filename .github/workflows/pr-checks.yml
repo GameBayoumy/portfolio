@@ -6,7 +6,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
 
 env:
-  NODE_VERSION: '18.17.0'
+  NODE_VERSION: '20.17.0'
   CI: true
   FORCE_COLOR: 1
 

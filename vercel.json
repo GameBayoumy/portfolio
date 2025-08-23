@@ -1,8 +1,8 @@
 {
-  "buildCommand": "bun install && bun run build",
+  "buildCommand": "bun install --frozen-lockfile && bun run build",
   "outputDirectory": ".next",
   "framework": "nextjs", 
-  "installCommand": "bun install",
+  "installCommand": "bun install --frozen-lockfile",
   "devCommand": "bun run dev",
   "regions": ["iad1"],
   "headers": [
@@ -89,7 +89,9 @@
   "build": {
     "env": {
       "NODE_VERSION": "20.x",
-      "BUN_VERSION": "1.2.10"
+      "BUN_VERSION": "latest",
+      "SKIP_ENV_VALIDATION": "1",
+      "NEXT_TELEMETRY_DISABLED": "1"
     }
   }
 }

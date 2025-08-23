@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: '18.17.0'
+  NODE_VERSION: '20.17.0'
   CI: true
   FORCE_COLOR: 1
 
