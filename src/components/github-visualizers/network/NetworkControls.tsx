@@ -143,7 +143,6 @@ const NetworkControls: React.FC<NetworkControlsProps> = ({
   return (
     <OrbitControls
       ref={controlsRef}
-      args={[camera, gl.domElement]}
       enablePan={enablePan}
       enableZoom={enableZoom}
       enableRotate={enableRotate}

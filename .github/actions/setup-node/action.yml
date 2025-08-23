@@ -15,9 +15,9 @@ inputs:
     required: false
     default: 'true'
   cache-dependency-path:
-    description: 'Path to lockfile (bun.lockb, package-lock.json, etc.)'
+    description: 'Path to lockfile (bun.lock, package-lock.json, etc.)'
     required: false
-    default: '**/bun.lockb'
+    default: '**/bun.lock'
   install-dependencies:
     description: 'Whether to install dependencies'
     required: false
@@ -53,7 +53,7 @@ runs:
 
     - name: Cache Dependencies and Build
       id: cache-deps
-      uses: actions/cache@v4
+      uses: actions/cache@2cdf405574d6ef1f33a1d12acccd3ae82f47b3f2 # v4.1.2
       with:
         path: |
           ~/.bun/install/cache
