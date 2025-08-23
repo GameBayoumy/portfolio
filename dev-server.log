@@ -12,3 +12,56 @@
  ✓ Starting...
  ✓ Ready in 1301ms
    Reload env: .env.local
+   Reload env: .env.local
+   Reload env: .env.local
+ ⚠ Found a change in next.config.js. Restarting the server to apply the changes...
+  ▲ Next.js 14.2.32
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+  - Experiments (use with caution):
+    · turbo
+    · optimizeCss
+    · instrumentationHook
+
+ ✓ Starting...
+ ○ Compiling /instrumentation ...
+ ✓ Compiled /instrumentation in 6.1s (1468 modules)
+ ✓ Ready in 8.2s
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: incorrect header check
+ ✓ Compiled in 399ms (1468 modules)
+ ○ Compiling / ...
+ ⨯ ./app/layout.tsx
+Error: Cannot find module @rollup/rollup-win32-x64-msvc. npm has a bug related to optional dependencies (https://github.com/npm/cli/issues/4828). Please try `npm i` again after removing both package-lock.json and node_modules directory.
+Import trace for requested module:
+./app/layout.tsx
+ ⨯ ./app/layout.tsx
+Error: Cannot find module @rollup/rollup-win32-x64-msvc. npm has a bug related to optional dependencies (https://github.com/npm/cli/issues/4828). Please try `npm i` again after removing both package-lock.json and node_modules directory.
+Import trace for requested module:
+./app/layout.tsx
+ ⨯ ./app/layout.tsx
+Error: Cannot find module @rollup/rollup-win32-x64-msvc. npm has a bug related to optional dependencies (https://github.com/npm/cli/issues/4828). Please try `npm i` again after removing both package-lock.json and node_modules directory.
+Import trace for requested module:
+./app/layout.tsx
+Time 2.9901
+ GET / 500 in 9053ms
+ ⨯ ./node_modules/hoist-non-react-statics/node_modules/react-is/index.js
+Module build failed: Error: ENOENT: no such file or directory, open 'C:\dev\portfolio\node_modules\hoist-non-react-statics\node_modules\react-is\index.js'
+
+Import trace for requested module:
+./node_modules/hoist-non-react-statics/node_modules/react-is/index.js
+./node_modules/hoist-non-react-statics/dist/hoist-non-react-statics.cjs.js
+./node_modules/@sentry/react/build/esm/hoist-non-react-statics.js
+./node_modules/@sentry/react/build/esm/profiler.js
+./node_modules/@sentry/react/build/esm/index.js
+./node_modules/@sentry/nextjs/build/esm/index.client.js
+<w> [webpack.cache.PackFileCacheStrategy] Restoring pack from C:\dev\portfolio\.next\cache\webpack\server-development.pack.gz failed: TypeError: Cannot read properties of undefined (reading 'hasStartTime')
+ ⨯ ./node_modules/hoist-non-react-statics/node_modules/react-is/index.js
+Module build failed: Error: ENOENT: no such file or directory, open 'C:\dev\portfolio\node_modules\hoist-non-react-statics\node_modules\react-is\index.js'
+
+Import trace for requested module:
+./node_modules/hoist-non-react-statics/node_modules/react-is/index.js
+./node_modules/hoist-non-react-statics/dist/hoist-non-react-statics.cjs.js
+./node_modules/@sentry/react/build/esm/hoist-non-react-statics.js
+./node_modules/@sentry/react/build/esm/profiler.js
+./node_modules/@sentry/react/build/esm/index.js
+./node_modules/@sentry/nextjs/build/esm/index.client.js

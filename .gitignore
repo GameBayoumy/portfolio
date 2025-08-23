@@ -40,3 +40,6 @@ templates/
 node_modules/
 tsconfig.tsbuildinfo
 .vercel
+
+# Sentry Config File
+.env.sentry-build-plugin
