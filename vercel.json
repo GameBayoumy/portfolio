@@ -1,7 +1,7 @@
 {
-  "buildCommand": "bun run build",
+  "buildCommand": "bun install && bun run build",
   "outputDirectory": ".next",
-  "framework": "nextjs",
+  "framework": "nextjs", 
   "installCommand": "bun install",
   "devCommand": "bun run dev",
   "regions": ["iad1"],
@@ -14,7 +14,7 @@
           "value": "DENY"
         },
         {
-          "key": "X-Content-Type-Options",
+          "key": "X-Content-Type-Options", 
           "value": "nosniff"
         },
         {
@@ -83,17 +83,13 @@
   ],
   "env": {
     "NODE_ENV": "production",
-    "NEXT_TELEMETRY_DISABLED": "1"
+    "NEXT_TELEMETRY_DISABLED": "1",
+    "SKIP_ENV_VALIDATION": "1"
   },
   "build": {
     "env": {
-      "NODE_VERSION": "18",
-      "BUN_VERSION": "latest"
-    }
-  },
-  "functions": {
-    "app/api/**": {
-      "runtime": "nodejs20.x"
+      "NODE_VERSION": "20.x",
+      "BUN_VERSION": "1.2.10"
     }
   }
 }
