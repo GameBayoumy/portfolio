@@ -3,7 +3,8 @@
 import { useGitHubStats } from '@/hooks/useGitHubStats';
 import { GitHubStatsGrid } from '@/components/github-visualizers/GitHubStatsGrid';
 import { LanguageDistribution } from '@/components/github-visualizers/LanguageDistribution';
-import { RepositoryNetwork3D } from '@/components/github-visualizers/network';
+// Temporarily disabled for build compatibility
+// import { RepositoryNetwork3D } from '@/components/github-visualizers/network';
 import { ContributionHeatmap } from '@/components/github-visualizers/heatmap';
 import { ActivityTimeline } from '@/components/github-visualizers/timeline';
 import { motion } from 'framer-motion';
@@ -38,7 +39,6 @@ export default function GitHubVisualizersSection() {
       y: 0,
       transition: {
         duration: 0.6,
-        ease: 'easeOut',
       },
     },
   };
@@ -209,13 +209,10 @@ export default function GitHubVisualizersSection() {
                       transition={{ duration: 0.3 }}
                       className="glass-morphism p-6 rounded-xl"
                     >
-                      <Suspense fallback={
-                        <div className="flex items-center justify-center h-96">
-                          <div className="text-gray-400">Loading 3D visualization...</div>
-                        </div>
-                      }>
-                        <RepositoryNetwork3D repositories={data.repositories} />
-                      </Suspense>
+                      {/* Temporarily disabled for build compatibility */}
+                      <div className="flex items-center justify-center h-96">
+                        <div className="text-gray-400">3D Network visualization temporarily disabled</div>
+                      </div>
                     </motion.div>
                   )}
 

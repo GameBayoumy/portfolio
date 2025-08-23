@@ -36,7 +36,6 @@ export default function HeroSection() {
       y: 0,
       transition: {
         duration: 0.8,
-        ease: 'easeOut',
       },
     },
   };
@@ -49,7 +48,6 @@ export default function HeroSection() {
       transition: {
         duration: 3,
         repeat: Infinity,
-        ease: 'easeInOut',
       },
     },
   };
@@ -238,8 +236,7 @@ export default function HeroSection() {
             transition={{
               duration: 1.5,
               repeat: Infinity,
-              ease: 'easeInOut',
-            }}
+                  }}
           >
             <ArrowDown className="w-6 h-6 text-neon-blue" />
           </motion.div>

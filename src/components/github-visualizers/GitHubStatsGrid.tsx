@@ -76,7 +76,6 @@ export function GitHubStatsGrid({ stats }: GitHubStatsGridProps) {
       y: 0,
       transition: {
         duration: 0.6,
-        ease: 'easeOut',
       },
     },
   };

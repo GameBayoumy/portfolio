@@ -134,7 +134,6 @@ export default function ContactSection() {
       y: 0,
       transition: {
         duration: 0.6,
-        ease: 'easeOut',
       },
     },
   };
@@ -382,7 +381,7 @@ export default function ContactSection() {
                     <motion.div
                       className="w-5 h-5 border-2 border-black border-t-transparent rounded-full"
                       animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                     />
                     Sending...
                   </>
