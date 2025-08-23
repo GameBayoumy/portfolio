@@ -12,7 +12,7 @@ const nextConfig = {
     },
   },
   images: {
-    domains: ['sharifbayoumy.nl', 'github.com', 'linkedin.com'],
+    domains: ['sharifbayoumy.com', 'github.com', 'linkedin.com'],
     formats: ['image/webp', 'image/avif'],
   },
   webpack: (config, { isServer }) => {

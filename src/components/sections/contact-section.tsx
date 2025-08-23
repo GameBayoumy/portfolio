@@ -111,7 +111,7 @@ export default function ContactSection() {
     {
       icon: ExternalLink,
       label: 'Portfolio',
-      href: 'https://sharifbayoumy.nl',
+      href: 'https://sharifbayoumy.com',
       color: 'hover:text-neon-pink',
     },
   ];

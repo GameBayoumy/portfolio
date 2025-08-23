@@ -11,7 +11,7 @@ const mockLinkedInData = {
       connectionCount: 500,
       followerCount: 1200,
       industry: "Technology",
-      website: "https://sharifbayoumy.nl"
+      website: "https://sharifbayoumy.com"
     },
     currentPosition: {
       id: "current-1",

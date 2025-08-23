@@ -46,7 +46,7 @@ const projects: Project[] = [
     category: 'xr',
     status: 'completed',
     featured: true,
-    demoUrl: 'https://webxr-museum-demo.sharifbayoumy.nl',
+    demoUrl: 'https://webxr-museum-demo.sharifbayoumy.com',
     githubUrl: 'https://github.com/GameBayoumy/webxr-museum',
     achievements: [
       'Cross-platform compatibility across devices',
