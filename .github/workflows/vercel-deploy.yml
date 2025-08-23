@@ -116,7 +116,7 @@ jobs:
             }
 
       - name: Run Lighthouse CI on Preview
-        uses: treosh/lighthouse-ci-action@12.1.0
+        uses: treosh/lighthouse-ci-action@fcd65974f7c4c2bf0ee9d09b84d2489183c29726 # v12.6.1
         with:
           urls: |
             ${{ steps.deploy.outputs.DEPLOYMENT_URL }}
