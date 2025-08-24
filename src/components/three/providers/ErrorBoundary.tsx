@@ -467,7 +467,7 @@ export class ThreeErrorBoundary extends Component<
           error={this.state.error}
           errorInfo={this.state.errorInfo}
           retry={this.retry}
-          canRetry={canRetry}
+          canRetry={canRetry || false}
           fallbackMode={this.state.fallbackMode}
         />
       );
@@ -495,7 +495,12 @@ export const withThreeErrorBoundary = <P extends object>(
 // Hook for manual error reporting
 export const useThreeErrorReporting = () => {
   const reportError = (error: Error, context?: any) => {
-    const visualizerError = ThreeErrorBoundary.categorizeError(error);
+    // Create a simple visualizer error instead of using private method
+    const visualizerError = new Error(error.message) as any;
+    visualizerError.code = 'GENERAL_ERROR';
+    visualizerError.severity = 'medium';
+    visualizerError.recoverable = true;
+    visualizerError.fallbackAvailable = false;
     visualizerError.context = { ...visualizerError.context, ...context };
     
     // Throw error to be caught by nearest error boundary

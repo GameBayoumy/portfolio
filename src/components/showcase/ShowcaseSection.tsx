@@ -13,7 +13,7 @@ const ShowcaseSection = memo(function ShowcaseSection({
   className = ''
 }: ShowcaseSectionProps) {
   const sectionRef = React.useRef<HTMLElement>(null);
-  const isIntersecting = useIntersectionObserver(sectionRef, { threshold: 0.1 });
+  const isIntersecting = useIntersectionObserver(sectionRef as React.RefObject<Element>, { threshold: 0.1 });
 
   return (
     <section 

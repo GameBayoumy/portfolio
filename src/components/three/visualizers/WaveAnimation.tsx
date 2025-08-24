@@ -491,8 +491,8 @@ export const WaveAnimation: React.FC<WaveAnimationProps> = ({
       ref={meshRef}
       geometry={geometry}
       material={material}
-      position={position}
-      rotation={rotation}
+      position={position as [number, number, number]}
+      rotation={rotation as [number, number, number]}
       receiveShadow
     >
       <shaderMaterial

@@ -1,0 +1,586 @@
+name: 📊 Deployment Monitoring & Health Checks
+
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to monitor'
+        required: false
+        default: 'production'
+        type: choice
+        options: ['production', 'staging', 'preview']
+      check_type:
+        description: 'Type of monitoring check'
+        required: false
+        default: 'full'
+        type: choice
+        options: ['full', 'health', 'performance', 'security']
+      notify_on_failure:
+        description: 'Send notifications on failure'
+        required: false
+        default: true
+        type: boolean
+
+concurrency:
+  group: monitoring-${{ github.event.inputs.environment || github.event.deployment_status.environment }}
+  cancel-in-progress: false
+
+env:
+  FORCE_COLOR: 1
+  NODE_ENV: production
+
+jobs:
+  # Job 1: Environment Detection & Setup
+  environment-setup:
+    name: 🔍 Environment Detection
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      environment: ${{ steps.detect-env.outputs.environment }}
+      deployment-url: ${{ steps.detect-env.outputs.deployment-url }}
+      is-production: ${{ steps.detect-env.outputs.is-production }}
+      monitoring-enabled: ${{ steps.detect-env.outputs.monitoring-enabled }}
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔍 Detect environment and URLs
+        id: detect-env
+        run: |
+          # Determine environment
+          if [[ -n "${{ github.event.deployment_status.environment }}" ]]; then
+            ENV="${{ github.event.deployment_status.environment }}"
+            DEPLOYMENT_URL="${{ github.event.deployment_status.target_url }}"
+          else
+            ENV="${{ github.event.inputs.environment || 'production' }}"
+            DEPLOYMENT_URL=""
+          fi
+          
+          echo "environment=$ENV" >> $GITHUB_OUTPUT
+          echo "🌍 Environment: $ENV"
+          
+          # Set deployment URL based on environment if not provided
+          if [[ -z "$DEPLOYMENT_URL" ]]; then
+            case "$ENV" in
+              "production")
+                DEPLOYMENT_URL="https://xr-portfolio.vercel.app"
+                ;;
+              "staging")
+                DEPLOYMENT_URL="https://staging-xr-portfolio.vercel.app"
+                ;;
+              "preview")
+                DEPLOYMENT_URL="https://preview-xr-portfolio.vercel.app"
+                ;;
+              *)
+                DEPLOYMENT_URL="https://xr-portfolio.vercel.app"
+                ;;
+            esac
+          fi
+          
+          echo "deployment-url=$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "🔗 Deployment URL: $DEPLOYMENT_URL"
+          
+          # Set production flag
+          IS_PROD="false"
+          [[ "$ENV" == "production" ]] && IS_PROD="true"
+          echo "is-production=$IS_PROD" >> $GITHUB_OUTPUT
+          
+          # Enable monitoring (always enabled for now)
+          echo "monitoring-enabled=true" >> $GITHUB_OUTPUT
+          
+          echo "✅ Environment detection complete"
+
+  # Job 2: Basic Health Checks
+  health-checks:
+    name: 🏥 Health Checks
+    runs-on: ubuntu-latest
+    needs: environment-setup
+    if: needs.environment-setup.outputs.monitoring-enabled == 'true'
+    timeout-minutes: 10
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+
+      - name: 🏥 Basic connectivity check
+        id: connectivity
+        continue-on-error: true
+        run: |
+          URL="${{ needs.environment-setup.outputs.deployment-url }}"
+          echo "🔍 Testing connectivity to: $URL"
+          
+          if [[ -z "$URL" ]] || [[ "$URL" == "null" ]]; then
+            echo "❌ No deployment URL provided"
+            echo "connectivity-success=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Test basic connectivity with retries
+          MAX_RETRIES=3
+          RETRY_DELAY=10
+          SUCCESS=false
+          
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "🔄 Attempt $i/$MAX_RETRIES"
+            
+            if curl -f -s -m 30 "$URL" > /dev/null; then
+              echo "✅ Site is reachable"
+              SUCCESS=true
+              break
+            else
+              echo "❌ Attempt $i failed"
+              [[ $i -lt $MAX_RETRIES ]] && sleep $RETRY_DELAY
+            fi
+          done
+          
+          if [[ "$SUCCESS" == "true" ]]; then
+            echo "connectivity-success=true" >> $GITHUB_OUTPUT
+          else
+            echo "connectivity-success=false" >> $GITHUB_OUTPUT
+            echo "❌ Site is not reachable after $MAX_RETRIES attempts"
+          fi
+
+      - name: 🔍 Response time check
+        id: response-time
+        continue-on-error: true
+        if: steps.connectivity.outputs.connectivity-success == 'true'
+        run: |
+          URL="${{ needs.environment-setup.outputs.deployment-url }}"
+          echo "⏱️ Measuring response time for: $URL"
+          
+          # Measure response time
+          RESPONSE_TIME=$(curl -o /dev/null -s -w '%{time_total}' -m 30 "$URL" || echo "timeout")
+          
+          if [[ "$RESPONSE_TIME" == "timeout" ]]; then
+            echo "❌ Request timed out"
+            echo "response-time-ms=timeout" >> $GITHUB_OUTPUT
+            echo "response-time-ok=false" >> $GITHUB_OUTPUT
+          else
+            RESPONSE_TIME_MS=$(echo "$RESPONSE_TIME * 1000" | bc -l | cut -d. -f1)
+            echo "response-time-ms=$RESPONSE_TIME_MS" >> $GITHUB_OUTPUT
+            echo "⏱️ Response time: ${RESPONSE_TIME_MS}ms"
+            
+            # Check if response time is acceptable (< 3 seconds)
+            if [[ $RESPONSE_TIME_MS -lt 3000 ]]; then
+              echo "✅ Response time is acceptable"
+              echo "response-time-ok=true" >> $GITHUB_OUTPUT
+            else
+              echo "⚠️ Response time is slow (>${RESPONSE_TIME_MS}ms)"
+              echo "response-time-ok=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: 🔍 Status code verification
+        id: status-check
+        continue-on-error: true
+        if: steps.connectivity.outputs.connectivity-success == 'true'
+        run: |
+          URL="${{ needs.environment-setup.outputs.deployment-url }}"
+          echo "🔢 Checking HTTP status for: $URL"
+          
+          STATUS_CODE=$(curl -o /dev/null -s -w '%{http_code}' -m 30 "$URL" || echo "000")
+          echo "status-code=$STATUS_CODE" >> $GITHUB_OUTPUT
+          echo "🔢 HTTP Status: $STATUS_CODE"
+          
+          if [[ "$STATUS_CODE" -ge 200 ]] && [[ "$STATUS_CODE" -lt 400 ]]; then
+            echo "✅ HTTP status is healthy"
+            echo "status-ok=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ HTTP status indicates an issue"
+            echo "status-ok=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 🔍 Content validation
+        id: content-check
+        continue-on-error: true
+        if: steps.connectivity.outputs.connectivity-success == 'true'
+        run: |
+          URL="${{ needs.environment-setup.outputs.deployment-url }}"
+          echo "📄 Validating page content for: $URL"
+          
+          # Download page content
+          CONTENT=$(curl -f -s -m 30 "$URL" 2>/dev/null || echo "")
+          
+          if [[ -z "$CONTENT" ]]; then
+            echo "❌ Could not retrieve page content"
+            echo "content-ok=false" >> $GITHUB_OUTPUT
+          else
+            echo "📊 Content size: $(echo "$CONTENT" | wc -c) characters"
+            
+            # Check for essential elements
+            CHECKS_PASSED=0
+            TOTAL_CHECKS=0
+            
+            # Check for HTML structure
+            ((TOTAL_CHECKS++))
+            if echo "$CONTENT" | grep -q "<html"; then
+              echo "✅ HTML structure found"
+              ((CHECKS_PASSED++))
+            else
+              echo "❌ No HTML structure found"
+            fi
+            
+            # Check for title tag
+            ((TOTAL_CHECKS++))
+            if echo "$CONTENT" | grep -q "<title"; then
+              echo "✅ Title tag found"
+              ((CHECKS_PASSED++))
+            else
+              echo "❌ No title tag found"
+            fi
+            
+            # Check for viewport meta tag (responsive design)
+            ((TOTAL_CHECKS++))
+            if echo "$CONTENT" | grep -q "viewport"; then
+              echo "✅ Viewport meta tag found"
+              ((CHECKS_PASSED++))
+            else
+              echo "❌ No viewport meta tag found"
+            fi
+            
+            # Check for no error messages
+            ((TOTAL_CHECKS++))
+            if ! echo "$CONTENT" | grep -qi "error\|exception\|500\|404"; then
+              echo "✅ No obvious error messages found"
+              ((CHECKS_PASSED++))
+            else
+              echo "❌ Potential error messages found in content"
+            fi
+            
+            echo "📊 Content checks: $CHECKS_PASSED/$TOTAL_CHECKS passed"
+            
+            if [[ $CHECKS_PASSED -ge 3 ]]; then
+              echo "content-ok=true" >> $GITHUB_OUTPUT
+              echo "✅ Content validation passed"
+            else
+              echo "content-ok=false" >> $GITHUB_OUTPUT
+              echo "❌ Content validation failed"
+            fi
+          fi
+
+  # Job 3: Performance Monitoring
+  performance-monitoring:
+    name: ⚡ Performance Monitoring
+    runs-on: ubuntu-latest
+    needs: [environment-setup, health-checks]
+    if: |
+      needs.environment-setup.outputs.monitoring-enabled == 'true' && 
+      (github.event.inputs.check_type == 'full' || github.event.inputs.check_type == 'performance')
+    timeout-minutes: 15
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+
+      - name: 📦 Install performance tools
+        run: |
+          npm install -g lighthouse cli
+          npm install -g web-vitals-cli || echo "web-vitals-cli not available"
+
+      - name: 🚀 Run Lighthouse audit
+        id: lighthouse
+        continue-on-error: true
+        run: |
+          URL="${{ needs.environment-setup.outputs.deployment-url }}"
+          echo "🚀 Running Lighthouse audit for: $URL"
+          
+          if [[ -z "$URL" ]] || [[ "$URL" == "null" ]]; then
+            echo "❌ No deployment URL provided for Lighthouse"
+            echo "lighthouse-success=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Run Lighthouse with retries
+          MAX_RETRIES=2
+          SUCCESS=false
+          
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "🔄 Lighthouse attempt $i/$MAX_RETRIES"
+            
+            if lighthouse "$URL" --output=json --output-path=lighthouse-results.json --chrome-flags="--headless --no-sandbox" --quiet; then
+              SUCCESS=true
+              break
+            else
+              echo "❌ Lighthouse attempt $i failed"
+              [[ $i -lt $MAX_RETRIES ]] && sleep 30
+            fi
+          done
+          
+          if [[ "$SUCCESS" == "true" ]] && [[ -f "lighthouse-results.json" ]]; then
+            echo "✅ Lighthouse audit completed"
+            echo "lighthouse-success=true" >> $GITHUB_OUTPUT
+            
+            # Extract scores
+            PERFORMANCE=$(cat lighthouse-results.json | jq -r '.categories.performance.score * 100 | floor')
+            ACCESSIBILITY=$(cat lighthouse-results.json | jq -r '.categories.accessibility.score * 100 | floor')
+            BEST_PRACTICES=$(cat lighthouse-results.json | jq -r '."best-practices".score * 100 | floor' 2>/dev/null || echo "0")
+            SEO=$(cat lighthouse-results.json | jq -r '.categories.seo.score * 100 | floor')
+            
+            echo "performance-score=$PERFORMANCE" >> $GITHUB_OUTPUT
+            echo "accessibility-score=$ACCESSIBILITY" >> $GITHUB_OUTPUT
+            echo "best-practices-score=$BEST_PRACTICES" >> $GITHUB_OUTPUT
+            echo "seo-score=$SEO" >> $GITHUB_OUTPUT
+            
+            echo "📊 Lighthouse Scores:"
+            echo "  Performance: $PERFORMANCE/100"
+            echo "  Accessibility: $ACCESSIBILITY/100"
+            echo "  Best Practices: $BEST_PRACTICES/100"
+            echo "  SEO: $SEO/100"
+          else
+            echo "❌ Lighthouse audit failed"
+            echo "lighthouse-success=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 📊 Upload Lighthouse results
+        if: steps.lighthouse.outputs.lighthouse-success == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-results-${{ needs.environment-setup.outputs.environment }}
+          path: lighthouse-results.json
+          retention-days: 30
+
+      - name: ⚡ Test Core Web Vitals
+        id: web-vitals
+        continue-on-error: true
+        run: |
+          URL="${{ needs.environment-setup.outputs.deployment-url }}"
+          echo "⚡ Testing Core Web Vitals for: $URL"
+          
+          if [[ -z "$URL" ]] || [[ "$URL" == "null" ]]; then
+            echo "❌ No deployment URL provided for Web Vitals"
+            echo "web-vitals-success=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Simple performance test with curl
+          echo "📊 Performance metrics:"
+          
+          # DNS lookup time
+          DNS_TIME=$(curl -w '%{time_namelookup}' -o /dev/null -s "$URL" 2>/dev/null || echo "0")
+          DNS_TIME_MS=$(echo "$DNS_TIME * 1000" | bc -l | cut -d. -f1)
+          echo "dns-time-ms=$DNS_TIME_MS" >> $GITHUB_OUTPUT
+          echo "  DNS Lookup: ${DNS_TIME_MS}ms"
+          
+          # Connection time
+          CONNECT_TIME=$(curl -w '%{time_connect}' -o /dev/null -s "$URL" 2>/dev/null || echo "0")
+          CONNECT_TIME_MS=$(echo "$CONNECT_TIME * 1000" | bc -l | cut -d. -f1)
+          echo "connect-time-ms=$CONNECT_TIME_MS" >> $GITHUB_OUTPUT
+          echo "  Connection: ${CONNECT_TIME_MS}ms"
+          
+          # First byte time (TTFB approximation)
+          TTFB_TIME=$(curl -w '%{time_starttransfer}' -o /dev/null -s "$URL" 2>/dev/null || echo "0")
+          TTFB_TIME_MS=$(echo "$TTFB_TIME * 1000" | bc -l | cut -d. -f1)
+          echo "ttfb-time-ms=$TTFB_TIME_MS" >> $GITHUB_OUTPUT
+          echo "  TTFB: ${TTFB_TIME_MS}ms"
+          
+          # Total time
+          TOTAL_TIME=$(curl -w '%{time_total}' -o /dev/null -s "$URL" 2>/dev/null || echo "0")
+          TOTAL_TIME_MS=$(echo "$TOTAL_TIME * 1000" | bc -l | cut -d. -f1)
+          echo "total-time-ms=$TOTAL_TIME_MS" >> $GITHUB_OUTPUT
+          echo "  Total Time: ${TOTAL_TIME_MS}ms"
+          
+          # Check if performance is acceptable
+          if [[ $TOTAL_TIME_MS -lt 3000 ]] && [[ $TTFB_TIME_MS -lt 1000 ]]; then
+            echo "✅ Performance metrics are acceptable"
+            echo "web-vitals-success=true" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ Performance metrics need improvement"
+            echo "web-vitals-success=false" >> $GITHUB_OUTPUT
+          fi
+
+  # Job 4: Security Monitoring
+  security-monitoring:
+    name: 🔒 Security Monitoring
+    runs-on: ubuntu-latest
+    needs: [environment-setup, health-checks]
+    if: |
+      needs.environment-setup.outputs.monitoring-enabled == 'true' && 
+      (github.event.inputs.check_type == 'full' || github.event.inputs.check_type == 'security')
+    timeout-minutes: 10
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔒 Security headers check
+        id: security-headers
+        continue-on-error: true
+        run: |
+          URL="${{ needs.environment-setup.outputs.deployment-url }}"
+          echo "🔒 Checking security headers for: $URL"
+          
+          if [[ -z "$URL" ]] || [[ "$URL" == "null" ]]; then
+            echo "❌ No deployment URL provided for security check"
+            echo "security-headers-ok=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Get headers
+          HEADERS=$(curl -I -s -m 30 "$URL" 2>/dev/null || echo "")
+          
+          if [[ -z "$HEADERS" ]]; then
+            echo "❌ Could not retrieve headers"
+            echo "security-headers-ok=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          echo "🔍 Security header analysis:"
+          
+          SECURITY_SCORE=0
+          TOTAL_CHECKS=6
+          
+          # Check for HTTPS
+          if echo "$HEADERS" | grep -qi "HTTP/2\|HTTP/1.1"; then
+            if [[ "$URL" == https://* ]]; then
+              echo "✅ HTTPS enabled"
+              ((SECURITY_SCORE++))
+            else
+              echo "❌ Not using HTTPS"
+            fi
+          fi
+          
+          # Check for security headers
+          if echo "$HEADERS" | grep -qi "strict-transport-security"; then
+            echo "✅ HSTS header found"
+            ((SECURITY_SCORE++))
+          else
+            echo "❌ HSTS header missing"
+          fi
+          
+          if echo "$HEADERS" | grep -qi "content-security-policy\|csp"; then
+            echo "✅ CSP header found"
+            ((SECURITY_SCORE++))
+          else
+            echo "❌ CSP header missing"
+          fi
+          
+          if echo "$HEADERS" | grep -qi "x-frame-options"; then
+            echo "✅ X-Frame-Options header found"
+            ((SECURITY_SCORE++))
+          else
+            echo "❌ X-Frame-Options header missing"
+          fi
+          
+          if echo "$HEADERS" | grep -qi "x-content-type-options"; then
+            echo "✅ X-Content-Type-Options header found"
+            ((SECURITY_SCORE++))
+          else
+            echo "❌ X-Content-Type-Options header missing"
+          fi
+          
+          if echo "$HEADERS" | grep -qi "referrer-policy"; then
+            echo "✅ Referrer-Policy header found"
+            ((SECURITY_SCORE++))
+          else
+            echo "❌ Referrer-Policy header missing"
+          fi
+          
+          echo "security-score=$SECURITY_SCORE" >> $GITHUB_OUTPUT
+          echo "📊 Security score: $SECURITY_SCORE/$TOTAL_CHECKS"
+          
+          if [[ $SECURITY_SCORE -ge 3 ]]; then
+            echo "security-headers-ok=true" >> $GITHUB_OUTPUT
+            echo "✅ Security headers check passed"
+          else
+            echo "security-headers-ok=false" >> $GITHUB_OUTPUT
+            echo "❌ Security headers check failed"
+          fi
+
+  # Job 5: Monitoring Summary and Notifications
+  monitoring-summary:
+    name: 📊 Monitoring Summary
+    runs-on: ubuntu-latest
+    needs: [environment-setup, health-checks, performance-monitoring, security-monitoring]
+    if: always() && needs.environment-setup.outputs.monitoring-enabled == 'true'
+    timeout-minutes: 5
+    steps:
+      - name: 📊 Generate monitoring report
+        run: |
+          echo "## 📊 Deployment Monitoring Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ needs.environment-setup.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** ${{ needs.environment-setup.outputs.deployment-url }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Check Type:** ${{ github.event.inputs.check_type || 'auto' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### 🏥 Health Check Results" >> $GITHUB_STEP_SUMMARY
+          [[ "${{ needs.health-checks.outputs.connectivity-success }}" == "true" ]] && echo "- ✅ Connectivity: Passed" >> $GITHUB_STEP_SUMMARY || echo "- ❌ Connectivity: Failed" >> $GITHUB_STEP_SUMMARY
+          [[ "${{ needs.health-checks.outputs.status-ok }}" == "true" ]] && echo "- ✅ HTTP Status: ${{ needs.health-checks.outputs.status-code }}" >> $GITHUB_STEP_SUMMARY || echo "- ❌ HTTP Status: ${{ needs.health-checks.outputs.status-code }}" >> $GITHUB_STEP_SUMMARY
+          [[ "${{ needs.health-checks.outputs.response-time-ok }}" == "true" ]] && echo "- ✅ Response Time: ${{ needs.health-checks.outputs.response-time-ms }}ms" >> $GITHUB_STEP_SUMMARY || echo "- ⚠️ Response Time: ${{ needs.health-checks.outputs.response-time-ms }}ms (slow)" >> $GITHUB_STEP_SUMMARY
+          [[ "${{ needs.health-checks.outputs.content-ok }}" == "true" ]] && echo "- ✅ Content Validation: Passed" >> $GITHUB_STEP_SUMMARY || echo "- ❌ Content Validation: Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ needs.performance-monitoring.result }}" == "success" ]]; then
+            echo "### ⚡ Performance Results" >> $GITHUB_STEP_SUMMARY
+            [[ "${{ needs.performance-monitoring.outputs.lighthouse-success }}" == "true" ]] && {
+              echo "**Lighthouse Scores:**" >> $GITHUB_STEP_SUMMARY
+              echo "- Performance: ${{ needs.performance-monitoring.outputs.performance-score }}/100" >> $GITHUB_STEP_SUMMARY
+              echo "- Accessibility: ${{ needs.performance-monitoring.outputs.accessibility-score }}/100" >> $GITHUB_STEP_SUMMARY
+              echo "- Best Practices: ${{ needs.performance-monitoring.outputs.best-practices-score }}/100" >> $GITHUB_STEP_SUMMARY
+              echo "- SEO: ${{ needs.performance-monitoring.outputs.seo-score }}/100" >> $GITHUB_STEP_SUMMARY
+            }
+            [[ "${{ needs.performance-monitoring.outputs.web-vitals-success }}" == "true" ]] && {
+              echo "**Web Vitals:**" >> $GITHUB_STEP_SUMMARY
+              echo "- DNS Lookup: ${{ needs.performance-monitoring.outputs.dns-time-ms }}ms" >> $GITHUB_STEP_SUMMARY
+              echo "- Connection: ${{ needs.performance-monitoring.outputs.connect-time-ms }}ms" >> $GITHUB_STEP_SUMMARY
+              echo "- TTFB: ${{ needs.performance-monitoring.outputs.ttfb-time-ms }}ms" >> $GITHUB_STEP_SUMMARY
+              echo "- Total Time: ${{ needs.performance-monitoring.outputs.total-time-ms }}ms" >> $GITHUB_STEP_SUMMARY
+            }
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [[ "${{ needs.security-monitoring.result }}" == "success" ]]; then
+            echo "### 🔒 Security Results" >> $GITHUB_STEP_SUMMARY
+            echo "**Security Headers Score:** ${{ needs.security-monitoring.outputs.security-score }}/6" >> $GITHUB_STEP_SUMMARY
+            [[ "${{ needs.security-monitoring.outputs.security-headers-ok }}" == "true" ]] && echo "- ✅ Security headers check passed" >> $GITHUB_STEP_SUMMARY || echo "- ⚠️ Security headers need improvement" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "### 📈 Overall Status" >> $GITHUB_STEP_SUMMARY
+          
+          # Calculate overall health
+          OVERALL_HEALTHY=true
+          [[ "${{ needs.health-checks.outputs.connectivity-success }}" != "true" ]] && OVERALL_HEALTHY=false
+          [[ "${{ needs.health-checks.outputs.status-ok }}" != "true" ]] && OVERALL_HEALTHY=false
+          
+          if [[ "$OVERALL_HEALTHY" == "true" ]]; then
+            echo "🟢 **HEALTHY** - All critical checks passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "🔴 **UNHEALTHY** - Critical issues detected" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: 🚨 Failure notification
+        if: |
+          failure() || 
+          (github.event.inputs.notify_on_failure == 'true' && 
+           (needs.health-checks.outputs.connectivity-success != 'true' || 
+            needs.health-checks.outputs.status-ok != 'true'))
+        continue-on-error: true
+        run: |
+          echo "🚨 Deployment monitoring detected issues!"
+          echo "Environment: ${{ needs.environment-setup.outputs.environment }}"
+          echo "URL: ${{ needs.environment-setup.outputs.deployment-url }}"
+          echo "Time: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          echo ""
+          echo "Issues detected:"
+          [[ "${{ needs.health-checks.outputs.connectivity-success }}" != "true" ]] && echo "- Site connectivity failed"
+          [[ "${{ needs.health-checks.outputs.status-ok }}" != "true" ]] && echo "- HTTP status error: ${{ needs.health-checks.outputs.status-code }}"
+          [[ "${{ needs.health-checks.outputs.response-time-ok }}" != "true" ]] && echo "- Slow response time: ${{ needs.health-checks.outputs.response-time-ms }}ms"
+          [[ "${{ needs.health-checks.outputs.content-ok }}" != "true" ]] && echo "- Content validation failed"
+
+      - name: ✅ Success notification
+        if: success()
+        run: |
+          echo "✅ Deployment monitoring completed successfully!"
+          echo "Environment: ${{ needs.environment-setup.outputs.environment }}"
+          echo "URL: ${{ needs.environment-setup.outputs.deployment-url }}"
+          echo "All health checks passed - deployment is healthy! 🎉"

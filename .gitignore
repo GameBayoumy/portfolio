@@ -1,4 +1,25 @@
 
+
+# Exclude template files that can cause build issues
+docs/templates/
+templates/
+*.template.*
+
+# Environment variables
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build artifacts
+.next/
+node_modules/
+tsconfig.tsbuildinfo
+.vercel
+
+# Sentry Config File
+.env.sentry-build-plugin
+
 # Claude Flow generated files
 .claude/settings.local.json
 .mcp.json
@@ -23,23 +44,3 @@ claude-flow
 claude-flow.bat
 claude-flow.ps1
 hive-mind-prompt-*.txt
-
-# Exclude template files that can cause build issues
-docs/templates/
-templates/
-*.template.*
-
-# Environment variables
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Build artifacts
-.next/
-node_modules/
-tsconfig.tsbuildinfo
-.vercel
-
-# Sentry Config File
-.env.sentry-build-plugin

@@ -263,7 +263,7 @@ function ParticleBackground() {
   }, [viewport]);
   
   return (
-    <mesh ref={meshRef} position={[0, 0, -10]}>
+    <mesh ref={meshRef} position={[0, 0, -10] as [number, number, number]}>
       <planeGeometry args={[viewport.width * 2, viewport.height * 2]} />
       <primitive object={shaderMaterial} attach="material" />
     </mesh>

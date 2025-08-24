@@ -1,5 +1,5 @@
-name: 'Setup Node.js/Bun with Caching'
-description: 'Set up Node.js/Bun with optimized caching for dependencies and build artifacts'
+name: 'Setup Node.js and Bun with Optimized Caching'
+description: 'Sets up Node.js and Bun with intelligent caching and dependency management'
 
 inputs:
   node-version:
@@ -11,98 +11,110 @@ inputs:
     required: false
     default: 'latest'
   use-bun:
-    description: 'Whether to use Bun instead of npm'
+    description: 'Whether to use Bun as the package manager'
     required: false
     default: 'true'
-  cache-dependency-path:
-    description: 'Path to lockfile (bun.lock, package-lock.json, etc.)'
-    required: false
-    default: '**/bun.lock'
   install-dependencies:
     description: 'Whether to install dependencies'
     required: false
     default: 'true'
+  cache-dependency-path:
+    description: 'Path to dependency files for caching'
+    required: false
+    default: 'bun.lockb'
 
 outputs:
   cache-hit:
     description: 'Whether dependencies were restored from cache'
     value: ${{ steps.cache-deps.outputs.cache-hit }}
   node-version:
-    description: 'The Node.js version that was installed'
+    description: 'Actual Node.js version installed'
     value: ${{ steps.setup-node.outputs.node-version }}
   bun-version:
-    description: 'The Bun version that was installed'
+    description: 'Actual Bun version installed'  
     value: ${{ steps.setup-bun.outputs.bun-version }}
 
 runs:
-  using: 'composite'
+  using: composite
   steps:
-    - name: Setup Node.js
+    - name: 🏗️ Setup Node.js
       id: setup-node
-      uses: actions/setup-node@0a44ba7841725637a19e28fa30b79a866c81b0a6 # v4.0.4
+      uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
         check-latest: true
 
-    - name: Setup Bun
+    - name: 🚀 Setup Bun
       id: setup-bun
       if: inputs.use-bun == 'true'
-      uses: oven-sh/setup-bun@4bc047ad259df6fc24a6c9b0f9a0cb08cf17fbe5 # v2
+      uses: oven-sh/setup-bun@v2
       with:
         bun-version: ${{ inputs.bun-version }}
 
-    - name: Cache Dependencies and Build
+    - name: 🔍 Generate cache key
+      id: cache-key
+      shell: bash
+      run: |
+        if [ "${{ inputs.use-bun }}" = "true" ]; then
+          echo "cache-key=${{ runner.os }}-bun-${{ hashFiles(inputs.cache-dependency-path, 'package.json') }}" >> $GITHUB_OUTPUT
+          echo "cache-path=~/.bun/install/cache" >> $GITHUB_OUTPUT
+        else
+          echo "cache-key=${{ runner.os }}-node-${{ hashFiles('package-lock.json', 'package.json') }}" >> $GITHUB_OUTPUT
+          echo "cache-path=~/.npm" >> $GITHUB_OUTPUT
+        fi
+
+    - name: 📦 Cache dependencies
       id: cache-deps
-      uses: actions/cache@2cdf405574d6ef1f33a1d12acccd3ae82f47b3f2 # v4.1.2
+      uses: actions/cache@v4
       with:
-        path: |
-          ~/.bun/install/cache
-          ~/.npm
-          node_modules
-          .next/cache
-        key: ${{ runner.os }}-${{ inputs.use-bun == 'true' && 'bun' || 'node' }}-${{ inputs.node-version }}-${{ hashFiles(inputs.cache-dependency-path) }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx', '**/*.json') }}
+        path: ${{ steps.cache-key.outputs.cache-path }}
+        key: ${{ steps.cache-key.outputs.cache-key }}
         restore-keys: |
-          ${{ runner.os }}-${{ inputs.use-bun == 'true' && 'bun' || 'node' }}-${{ inputs.node-version }}-${{ hashFiles(inputs.cache-dependency-path) }}-
-          ${{ runner.os }}-${{ inputs.use-bun == 'true' && 'bun' || 'node' }}-${{ inputs.node-version }}-
           ${{ runner.os }}-${{ inputs.use-bun == 'true' && 'bun' || 'node' }}-
 
-    - name: Install Dependencies with Bun
+    - name: 📋 Install dependencies with Bun
       if: inputs.install-dependencies == 'true' && inputs.use-bun == 'true' && steps.cache-deps.outputs.cache-hit != 'true'
       shell: bash
       run: |
-        echo "Installing dependencies with Bun..."
-        bun install --frozen-lockfile
-      env:
-        CI: true
-        FORCE_COLOR: 1
+        echo "🔄 Installing dependencies with Bun..."
+        bun install --frozen-lockfile --production=false
+        echo "✅ Dependencies installed successfully"
 
-    - name: Install Dependencies with npm
+    - name: 📋 Install dependencies with npm
       if: inputs.install-dependencies == 'true' && inputs.use-bun != 'true' && steps.cache-deps.outputs.cache-hit != 'true'
       shell: bash
       run: |
-        echo "Installing dependencies with npm..."
-        npm ci --prefer-offline --no-audit --frozen-lockfile
-      env:
-        CI: true
-        FORCE_COLOR: 1
+        echo "🔄 Installing dependencies with npm..."
+        npm ci --prefer-offline --no-audit
+        echo "✅ Dependencies installed successfully"
 
-    - name: Verify Installation
+    - name: 📊 Cache statistics
+      if: inputs.install-dependencies == 'true'
       shell: bash
       run: |
-        echo "Node.js version: $(node --version)"
-        if [ "${{ inputs.use-bun }}" = "true" ]; then
-          echo "Bun version: $(bun --version)"
-          echo "Package manager: Bun"
+        if [ "${{ steps.cache-deps.outputs.cache-hit }}" = "true" ]; then
+          echo "✅ Dependencies restored from cache"
         else
-          echo "npm version: $(npm --version)"
-          echo "Package manager: npm"
+          echo "📦 Dependencies installed fresh"
         fi
-        echo "Cache hit: ${{ steps.cache-deps.outputs.cache-hit }}"
         
-        # Check if node_modules exists and has content
-        if [ -d "node_modules" ] && [ "$(ls -A node_modules)" ]; then
-          echo "✅ Dependencies are available"
-          echo "Installed packages: $(ls node_modules | wc -l)"
+        # Show package manager info
+        if [ "${{ inputs.use-bun }}" = "true" ]; then
+          echo "Package Manager: Bun $(bun --version)"
         else
-          echo "⚠️ No dependencies found"
+          echo "Package Manager: npm $(npm --version)"
         fi
+        
+        echo "Node.js: $(node --version)"
+
+    - name: 🔧 Setup package manager globals
+      if: inputs.use-bun == 'true'
+      shell: bash
+      run: |
+        # Ensure Bun globals are in PATH
+        echo "$HOME/.bun/bin" >> $GITHUB_PATH
+        
+        # Set Bun environment variables for optimal performance
+        echo "BUN_RUNTIME=bun" >> $GITHUB_ENV
+        echo "BUN_INSTALL=$HOME/.bun" >> $GITHUB_ENV
+        echo "NODE_ENV=production" >> $GITHUB_ENV

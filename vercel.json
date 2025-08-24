@@ -4,13 +4,7 @@
   "framework": "nextjs", 
   "installCommand": "bun install --frozen-lockfile",
   "devCommand": "bun run dev",
-  "regions": ["iad1", "sfo1", "fra1"],
-  "functions": {
-    "src/app/api/**/*.{js,ts}": {
-      "runtime": "nodejs20.x",
-      "maxDuration": 10
-    }
-  },
+  "regions": ["iad1"],
   "headers": [
     {
       "source": "/(.*)",
@@ -90,8 +84,7 @@
   "env": {
     "NODE_ENV": "production",
     "NEXT_TELEMETRY_DISABLED": "1",
-    "SKIP_ENV_VALIDATION": "1",
-    "VERCEL_ENV": "@vercel-env"
+    "SKIP_ENV_VALIDATION": "1"
   },
   "build": {
     "env": {
@@ -111,7 +104,7 @@
   "crons": [
     {
       "path": "/api/health-check",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 12 * * *"
     }
   ]
 }

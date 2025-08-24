@@ -556,6 +556,27 @@ export interface UseAnimationLoopReturn {
   progress: number;
 }
 
+// Missing exports for performance config
+export interface AdaptiveQualitySettings {
+  enabled: boolean;
+  fpsThreshold: number;
+  qualitySteps: PerformanceLevel[];
+  adaptationDelay: number;
+  memoryThreshold: number;
+  stabilizationFrames: number;
+}
+
+export interface MemoryManagementConfig {
+  enabled: boolean;
+  maxGeometries: number;
+  maxTextures: number;
+  maxMaterials: number;
+  gcInterval: number;
+  preloadThreshold: number;
+  disposeThreshold: number;
+  compactOnLowMemory: boolean;
+}
+
 // Utility types
 export type Vector3Array = [number, number, number];
 export type Vector2Array = [number, number];

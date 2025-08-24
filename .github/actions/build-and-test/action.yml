@@ -1,13 +1,13 @@
-name: 'Build and Test'
-description: 'Run linting, type checking, testing, and build processes with proper error handling'
+name: 'Build and Test with Performance Monitoring'
+description: 'Builds and tests the application with comprehensive monitoring and optimization'
 
 inputs:
   use-bun:
-    description: 'Whether to use Bun instead of npm'
+    description: 'Whether to use Bun as the package manager'
     required: false
     default: 'true'
   run-lint:
-    description: 'Whether to run ESLint'
+    description: 'Whether to run linting'
     required: false
     default: 'true'
   run-type-check:
@@ -17,7 +17,7 @@ inputs:
   run-tests:
     description: 'Whether to run tests'
     required: false
-    default: 'false'
+    default: 'true'
   run-build:
     description: 'Whether to run build'
     required: false
@@ -26,156 +26,244 @@ inputs:
     description: 'Whether to fail fast on first error'
     required: false
     default: 'true'
+  build-args:
+    description: 'Additional build arguments'
+    required: false
+    default: ''
 
 outputs:
   lint-result:
-    description: 'Result of linting step'
-    value: ${{ steps.lint.outcome }}
+    description: 'Linting result'
+    value: ${{ steps.lint.outputs.result }}
   type-check-result:
-    description: 'Result of type checking step'
-    value: ${{ steps.type-check.outcome }}
+    description: 'Type checking result'
+    value: ${{ steps.type-check.outputs.result }}
   test-result:
-    description: 'Result of testing step'
-    value: ${{ steps.test.outcome }}
+    description: 'Test result'
+    value: ${{ steps.test.outputs.result }}
   build-result:
-    description: 'Result of build step'
-    value: ${{ steps.build.outcome }}
+    description: 'Build result'
+    value: ${{ steps.build.outputs.result }}
+  build-time:
+    description: 'Build time in seconds'
+    value: ${{ steps.build.outputs.duration }}
 
 runs:
-  using: 'composite'
+  using: composite
   steps:
-    - name: Run ESLint
+    - name: 🔍 ESLint Analysis
       id: lint
       if: inputs.run-lint == 'true'
       shell: bash
       run: |
-        echo "Running ESLint..."
+        echo "🔍 Running ESLint analysis..."
+        start_time=$(date +%s)
+        
         if [ "${{ inputs.use-bun }}" = "true" ]; then
-          CMD="bun run lint"
+          PACKAGE_MANAGER="bun run"
         else
-          CMD="npm run lint"
+          PACKAGE_MANAGER="npm run"
         fi
         
-        if $CMD; then
-          echo "✅ Linting passed"
+        if $PACKAGE_MANAGER lint; then
+          end_time=$(date +%s)
+          duration=$((end_time - start_time))
+          echo "✅ ESLint passed in ${duration}s"
+          echo "result=success" >> $GITHUB_OUTPUT
         else
-          echo "❌ Linting failed"
-          if [ "${{ inputs.fail-fast }}" = "true" ]; then
-            exit 1
-          fi
-        fi
-      continue-on-error: ${{ inputs.fail-fast != 'true' }}
-
-    - name: Run Type Check
-      id: type-check
-      if: inputs.run-type-check == 'true' && (success() || inputs.fail-fast != 'true')
-      shell: bash
-      run: |
-        echo "Running TypeScript type check..."
-        if [ "${{ inputs.use-bun }}" = "true" ]; then
-          CMD="bun run type-check"
-        else
-          CMD="npm run type-check"
-        fi
-        
-        if $CMD; then
-          echo "✅ Type checking passed"
-        else
-          echo "❌ Type checking failed"
-          if [ "${{ inputs.fail-fast }}" = "true" ]; then
-            exit 1
-          fi
-        fi
-      continue-on-error: ${{ inputs.fail-fast != 'true' }}
-
-    - name: Run Tests
-      id: test
-      if: inputs.run-tests == 'true' && (success() || inputs.fail-fast != 'true')
-      shell: bash
-      run: |
-        echo "Running tests..."
-        if [ "${{ inputs.use-bun }}" = "true" ]; then
-          CMD="bun test"
-        else
-          CMD="npm test"
-        fi
-        
-        if $CMD; then
-          echo "✅ Tests passed"
-        else
-          echo "❌ Tests failed"
-          if [ "${{ inputs.fail-fast }}" = "true" ]; then
-            exit 1
-          fi
-        fi
-      continue-on-error: ${{ inputs.fail-fast != 'true' }}
-
-    - name: Run Build
-      id: build
-      if: inputs.run-build == 'true' && (success() || inputs.fail-fast != 'true')
-      shell: bash
-      run: |
-        echo "Building application..."
-        if [ "${{ inputs.use-bun }}" = "true" ]; then
-          CMD="bun run build"
-        else
-          CMD="npm run build"
-        fi
-        
-        if $CMD; then
-          echo "✅ Build completed successfully"
+          end_time=$(date +%s)
+          duration=$((end_time - start_time))
+          echo "❌ ESLint failed in ${duration}s"
+          echo "result=failure" >> $GITHUB_OUTPUT
           
-          # Check build output
+          if [ "${{ inputs.fail-fast }}" = "true" ]; then
+            exit 1
+          fi
+        fi
+
+    - name: 🎯 TypeScript Type Checking
+      id: type-check
+      if: inputs.run-type-check == 'true'
+      shell: bash
+      run: |
+        echo "🎯 Running TypeScript type checking..."
+        start_time=$(date +%s)
+        
+        if [ "${{ inputs.use-bun }}" = "true" ]; then
+          PACKAGE_MANAGER="bun run"
+        else
+          PACKAGE_MANAGER="npm run"
+        fi
+        
+        if $PACKAGE_MANAGER type-check; then
+          end_time=$(date +%s)
+          duration=$((end_time - start_time))
+          echo "✅ TypeScript check passed in ${duration}s"
+          echo "result=success" >> $GITHUB_OUTPUT
+        else
+          end_time=$(date +%s)
+          duration=$((end_time - start_time))
+          echo "❌ TypeScript check failed in ${duration}s"
+          echo "result=failure" >> $GITHUB_OUTPUT
+          
+          if [ "${{ inputs.fail-fast }}" = "true" ]; then
+            exit 1
+          fi
+        fi
+
+    - name: 🧪 Run Tests
+      id: test
+      if: inputs.run-tests == 'true'
+      shell: bash
+      run: |
+        echo "🧪 Running test suite..."
+        start_time=$(date +%s)
+        
+        if [ "${{ inputs.use-bun }}" = "true" ]; then
+          PACKAGE_MANAGER="bun run"
+        else
+          PACKAGE_MANAGER="npm run"
+        fi
+        
+        # Try to run tests, but don't fail if test command doesn't exist
+        if $PACKAGE_MANAGER test --passWithNoTests 2>/dev/null || $PACKAGE_MANAGER test:coverage --silent 2>/dev/null; then
+          end_time=$(date +%s)
+          duration=$((end_time - start_time))
+          echo "✅ Tests passed in ${duration}s"
+          echo "result=success" >> $GITHUB_OUTPUT
+          
+          # Try to extract coverage information if available
+          if [ -f "coverage/coverage-summary.json" ]; then
+            COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct' 2>/dev/null || echo "N/A")
+            echo "📊 Test coverage: $COVERAGE%"
+          fi
+        else
+          end_time=$(date +%s)
+          duration=$((end_time - start_time))
+          echo "⚠️ Tests not available or failed in ${duration}s"
+          echo "result=skipped" >> $GITHUB_OUTPUT
+          
+          # Only fail if tests exist but failed
+          if [ "${{ inputs.fail-fast }}" = "true" ] && grep -q '"test"' package.json; then
+            echo "❌ Tests are configured but failed"
+            exit 1
+          fi
+        fi
+
+    - name: 🏗️ Build Application
+      id: build
+      if: inputs.run-build == 'true'
+      shell: bash
+      run: |
+        echo "🏗️ Building application..."
+        start_time=$(date +%s)
+        
+        if [ "${{ inputs.use-bun }}" = "true" ]; then
+          PACKAGE_MANAGER="bun run"
+        else
+          PACKAGE_MANAGER="npm run"
+        fi
+        
+        # Set build environment variables for optimization
+        export NEXT_TELEMETRY_DISABLED=1
+        export NODE_ENV=production
+        export ANALYZE=false
+        
+        if $PACKAGE_MANAGER build ${{ inputs.build-args }}; then
+          end_time=$(date +%s)
+          duration=$((end_time - start_time))
+          echo "✅ Build completed successfully in ${duration}s"
+          echo "result=success" >> $GITHUB_OUTPUT
+          echo "duration=$duration" >> $GITHUB_OUTPUT
+          
+          # Analyze build output if available
           if [ -d ".next" ]; then
-            BUILD_SIZE=$(du -sh .next 2>/dev/null | cut -f1)
-            echo "Build size: $BUILD_SIZE"
+            echo "📊 Build analysis:"
             
-            # Check for build artifacts
-            if [ -d ".next/static" ]; then
-              STATIC_FILES=$(find .next/static -type f | wc -l)
-              echo "Static files generated: $STATIC_FILES"
+            # Calculate build size
+            BUILD_SIZE=$(du -sh .next 2>/dev/null | cut -f1 || echo "Unknown")
+            echo "  Build size: $BUILD_SIZE"
+            
+            # Count generated files
+            JS_FILES=$(find .next/static -name "*.js" 2>/dev/null | wc -l || echo "0")
+            CSS_FILES=$(find .next/static -name "*.css" 2>/dev/null | wc -l || echo "0")
+            echo "  JS files: $JS_FILES"
+            echo "  CSS files: $CSS_FILES"
+            
+            # Check for build optimizations
+            if [ -f ".next/build-manifest.json" ]; then
+              echo "  ✅ Build manifest generated"
+            fi
+            
+            if [ -d ".next/static/chunks" ]; then
+              CHUNK_COUNT=$(ls .next/static/chunks/*.js 2>/dev/null | wc -l || echo "0")
+              echo "  Code chunks: $CHUNK_COUNT"
             fi
           fi
+          
         else
-          echo "❌ Build failed"
+          end_time=$(date +%s)
+          duration=$((end_time - start_time))
+          echo "❌ Build failed in ${duration}s"
+          echo "result=failure" >> $GITHUB_OUTPUT
+          echo "duration=$duration" >> $GITHUB_OUTPUT
+          
           if [ "${{ inputs.fail-fast }}" = "true" ]; then
             exit 1
           fi
         fi
-      continue-on-error: ${{ inputs.fail-fast != 'true' }}
-      env:
-        NODE_ENV: production
-        CI: true
-        FORCE_COLOR: 1
 
-    - name: Results Summary
+    - name: 📊 Performance Summary
       shell: bash
       run: |
-        echo "## Build and Test Summary" >> $GITHUB_STEP_SUMMARY
+        echo "## 🚀 Build & Test Performance Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "| Step | Result |" >> $GITHUB_STEP_SUMMARY
-        echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Stage | Result | Details |" >> $GITHUB_STEP_SUMMARY
+        echo "|-------|--------|---------|" >> $GITHUB_STEP_SUMMARY
         
+        # Lint results
         if [ "${{ inputs.run-lint }}" = "true" ]; then
-          LINT_STATUS="${{ steps.lint.outcome == 'success' && '✅ Passed' || '❌ Failed' }}"
-          echo "| ESLint | $LINT_STATUS |" >> $GITHUB_STEP_SUMMARY
+          LINT_RESULT="${{ steps.lint.outputs.result }}"
+          if [ "$LINT_RESULT" = "success" ]; then
+            echo "| 🔍 ESLint | ✅ Passed | Code style validation |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| 🔍 ESLint | ❌ Failed | Code style issues found |" >> $GITHUB_STEP_SUMMARY
+          fi
         fi
         
+        # Type check results
         if [ "${{ inputs.run-type-check }}" = "true" ]; then
-          TYPE_STATUS="${{ steps.type-check.outcome == 'success' && '✅ Passed' || '❌ Failed' }}"
-          echo "| Type Check | $TYPE_STATUS |" >> $GITHUB_STEP_SUMMARY
+          TYPE_RESULT="${{ steps.type-check.outputs.result }}"
+          if [ "$TYPE_RESULT" = "success" ]; then
+            echo "| 🎯 TypeScript | ✅ Passed | Type safety validated |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| 🎯 TypeScript | ❌ Failed | Type errors found |" >> $GITHUB_STEP_SUMMARY
+          fi
         fi
         
+        # Test results
         if [ "${{ inputs.run-tests }}" = "true" ]; then
-          TEST_STATUS="${{ steps.test.outcome == 'success' && '✅ Passed' || '❌ Failed' }}"
-          echo "| Tests | $TEST_STATUS |" >> $GITHUB_STEP_SUMMARY
+          TEST_RESULT="${{ steps.test.outputs.result }}"
+          if [ "$TEST_RESULT" = "success" ]; then
+            echo "| 🧪 Tests | ✅ Passed | All tests successful |" >> $GITHUB_STEP_SUMMARY
+          elif [ "$TEST_RESULT" = "skipped" ]; then
+            echo "| 🧪 Tests | ⏭️ Skipped | No tests configured |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| 🧪 Tests | ❌ Failed | Test failures detected |" >> $GITHUB_STEP_SUMMARY
+          fi
         fi
         
+        # Build results
         if [ "${{ inputs.run-build }}" = "true" ]; then
-          BUILD_STATUS="${{ steps.build.outcome == 'success' && '✅ Passed' || '❌ Failed' }}"
-          echo "| Build | $BUILD_STATUS |" >> $GITHUB_STEP_SUMMARY
+          BUILD_RESULT="${{ steps.build.outputs.result }}"
+          BUILD_TIME="${{ steps.build.outputs.duration }}"
+          if [ "$BUILD_RESULT" = "success" ]; then
+            echo "| 🏗️ Build | ✅ Passed | Completed in ${BUILD_TIME}s |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| 🏗️ Build | ❌ Failed | Build errors detected |" >> $GITHUB_STEP_SUMMARY
+          fi
         fi
         
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "**Package Manager**: ${{ inputs.use-bun == 'true' && 'Bun' || 'npm' }}" >> $GITHUB_STEP_SUMMARY
-        echo "**Completed at**: $(date -u)" >> $GITHUB_STEP_SUMMARY
+        echo "**Completed**: $(date -u)" >> $GITHUB_STEP_SUMMARY

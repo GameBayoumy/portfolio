@@ -1,9 +1,10 @@
 // Visualizers index - Advanced Three.js visualization components
+import ParticleFieldComponent from './ParticleField';
 export { default as ParticleField } from './ParticleField';
 export type { ParticleConfig, ParticleFieldProps } from './ParticleField';
 export { presets as ParticlePresets, defaultConfig as ParticleDefaultConfig } from './ParticleField';
 
 // Re-export for convenience
 export default {
-  ParticleField,
+  ParticleField: ParticleFieldComponent,
 };

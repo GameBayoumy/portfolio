@@ -317,7 +317,7 @@ export const ThreeProvider: React.FC<ThreeProviderProps> = ({
     
     // Utilities
     getResponsiveConfig,
-    isLowPerformance,
+    isLowPerformance: () => isLowPerformance() || false,
     canUseFeature,
   }), [
     performanceMode,
