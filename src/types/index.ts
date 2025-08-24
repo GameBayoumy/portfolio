@@ -273,10 +273,22 @@ export interface SEOConfig {
 export interface PerformanceMetrics {
   fps: number;
   memoryUsage: number;
+  renderTime: number;
+  triangles: number;
   drawCalls: number;
-  triangleCount: number;
-  loadTime: number;
-  interactionLatency: number;
+}
+
+// Visualizer configuration types
+export interface VisualizerConfig {
+  id: string;
+  name: string;
+  description: string;
+  component: React.ComponentType<any>;
+  category: 'particles' | 'geometry' | 'models' | 'effects';
+  complexity: 'low' | 'medium' | 'high';
+  requiredFeatures: string[];
+  thumbnail: string;
+  demoProps: Record<string, any>;
 }
 
 // Error types
