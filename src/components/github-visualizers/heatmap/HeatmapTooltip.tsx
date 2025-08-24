@@ -65,10 +65,10 @@ export function HeatmapTooltip({ day, visible, position }: HeatmapTooltipProps) 
     }
   }, [day])
 
-  if (!tooltipData || !visible) return null
-
   // Adjust position to keep tooltip in viewport
   const adjustedPosition = useMemo(() => {
+    if (!tooltipData || !visible) return { x: 0, y: 0 }
+    
     const tooltipWidth = 280
     const tooltipHeight = 120
     const padding = 16
@@ -93,7 +93,9 @@ export function HeatmapTooltip({ day, visible, position }: HeatmapTooltipProps) 
     }
 
     return { x, y }
-  }, [position])
+  }, [position, tooltipData, visible])
+
+  if (!tooltipData || !visible) return null
 
   return (
     <AnimatePresence>

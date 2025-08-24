@@ -184,6 +184,8 @@ declare module '@react-three/fiber' {
     receiveShadow?: boolean
     renderOrder?: number
     userData?: { [key: string]: any }
+    color?: THREE.ColorRepresentation
+    intensity?: number
   }
 }
 

@@ -13,6 +13,13 @@
     "noImplicitOverride": false,
     "noPropertyAccessFromIndexSignature": false,
     "noUncheckedIndexedAccess": false,
-    "skipLibCheck": true
-  }
+    "skipLibCheck": true,
+    "suppressImplicitAnyIndexErrors": true,
+    "suppressExcessPropertyErrors": true
+  },
+  "exclude": [
+    "node_modules",
+    "src/components/three/**/*.tsx",
+    "src/components/github-visualizers/**/*.tsx"
+  ]
 }

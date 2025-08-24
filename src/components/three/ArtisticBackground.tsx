@@ -87,7 +87,7 @@ export function ArtisticBackground({
   })
 
   return (
-    <group>
+    <>
       {/* Main background plane */}
       <Plane
         ref={meshRef}
@@ -111,8 +111,12 @@ export function ArtisticBackground({
         rotation={[0, 0, -Math.PI / 8]}
       />
       
-      <mesh ref={materialRef} />
-    </group>
+      {/* Reference mesh for material updates */}
+      <mesh ref={materialRef as any} visible={false}>
+        <planeGeometry args={[1, 1]} />
+        <primitive object={shaderMaterial} ref={materialRef} />
+      </mesh>
+    </>
   )
 }
 

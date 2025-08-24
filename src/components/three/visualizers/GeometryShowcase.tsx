@@ -87,7 +87,7 @@ const AnimatedCube: React.FC<{ position: [number, number, number]; color: string
 
   return (
     <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
-      <mesh ref={meshRef} position={position}>
+      <mesh ref={meshRef} position={new THREE.Vector3(...position)}>
         <boxGeometry args={[1.5, 1.5, 1.5]} />
         <shaderMaterial
           ref={materialRef}
@@ -97,7 +97,7 @@ const AnimatedCube: React.FC<{ position: [number, number, number]; color: string
           transparent
           side={THREE.DoubleSide}
         />
-        <Sparkles count={30} scale={2} size={2} speed={0.4} />
+        <Sparkles count={30} scale={1} size={2} speed={0.4} />
       </mesh>
     </Float>
   );
@@ -121,10 +121,10 @@ const MorphingSphere: React.FC<{ position: [number, number, number]; color: stri
 
   return (
     <Float speed={1.5} rotationIntensity={0.3} floatIntensity={0.8}>
-      <mesh ref={meshRef} position={position}>
+      <mesh ref={meshRef} position={new THREE.Vector3(...position)}>
         <sphereGeometry args={[1.2, 64, 64]} />
         <MeshDistortMaterial 
-          color={color}
+          color={new THREE.Color(color)}
           distort={hovered ? 0.8 : 0.4}
           speed={2}
           roughness={0.2}
@@ -132,7 +132,7 @@ const MorphingSphere: React.FC<{ position: [number, number, number]; color: stri
           transparent
           opacity={0.9}
         />
-        <Sparkles count={50} scale={2.5} size={1} speed={0.6} />
+        <Sparkles count={50} scale={1} size={1} speed={0.6} />
       </mesh>
     </Float>
   );
@@ -163,10 +163,10 @@ const AnimatedTorus: React.FC<{ position: [number, number, number]; color: strin
 
   return (
     <Float speed={1.8} rotationIntensity={0.4} floatIntensity={0.6}>
-      <mesh ref={meshRef} position={position}>
+      <mesh ref={meshRef} position={new THREE.Vector3(...position)}>
         <torusGeometry args={[1, 0.4, 16, 100]} />
         <MeshWobbleMaterial 
-          color={color}
+          color={new THREE.Color(color)}
           factor={hovered ? 2 : 1}
           speed={3}
           roughness={0.1}
@@ -212,7 +212,7 @@ const ComplexOctahedron: React.FC<{ position: [number, number, number]; color: s
 
   return (
     <Float speed={2.2} rotationIntensity={0.6} floatIntensity={0.4}>
-      <mesh ref={meshRef} position={position}>
+      <mesh ref={meshRef} position={new THREE.Vector3(...position)}>
         <octahedronGeometry args={[1.3, 0]} />
         <shaderMaterial
           ref={materialRef}
@@ -261,10 +261,10 @@ const TransitionShape: React.FC<{
 
   return (
     <Float speed={1.2} rotationIntensity={0.2} floatIntensity={1}>
-      <mesh ref={meshRef} position={position}>
+      <mesh ref={meshRef} position={new THREE.Vector3(...position)}>
         {shapes[currentShape]}
         <meshStandardMaterial 
-          color={color}
+          color={new THREE.Color(color)}
           metalness={0.7}
           roughness={0.3}
           transparent
@@ -360,7 +360,7 @@ const GeometryScene: React.FC = () => {
         >
           <Component 
             position={position}
-            color={color}
+            color={new THREE.Color(color)}
             hovered={hoveredShape === id}
           />
           {/* Shape labels */}

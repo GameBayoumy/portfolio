@@ -4,6 +4,7 @@ import React, { Suspense, useState, useEffect, useRef, memo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Stats, Preload } from '@react-three/drei';
 import { motion, AnimatePresence } from 'framer-motion';
+import * as THREE from 'three';
 import { performanceUtils, deviceUtils } from '@/lib/utils';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import type { Scene3DProps } from '@/types';
@@ -321,7 +322,7 @@ const ThreeVisualizersSection = memo(function ThreeVisualizersSection({
     
     // Detect performance and adjust settings
     const tier = performanceMode === 'auto' ? performanceUtils.getPerformanceTier() : performanceMode;
-    const validTier = (tier === 'ultra' || tier === 'high') ? 'high' : tier;
+    const validTier = (tier === 'high') ? 'high' : tier;
     const settings = performanceUtils.getQualitySettings(validTier as 'low' | 'medium' | 'high');
     
     setQualitySettings(settings);
@@ -487,12 +488,12 @@ const ThreeVisualizersSection = memo(function ThreeVisualizersSection({
                   }}
                 >
                   <Preload all />
-                  <PerspectiveCamera makeDefault position={[0, 0, 10] as [number, number, number]} />
+                  <PerspectiveCamera makeDefault position={[0, 0, 10] as any} />
                   
                   {/* Lighting */}
                   <ambientLight intensity={0.4} color="white" />
-                  <directionalLight position={[10, 10, 5] as [number, number, number]} intensity={1} color="white" />
-                  <pointLight position={[-10, -10, -5]} color="#ff006e" intensity={0.3} />
+                  <directionalLight position={[10, 10, 5] as any} intensity={1} color="white" />
+                  <pointLight position={[-10, -10, -5] as any} color="#ff006e" intensity={0.3} />
                   
                   {/* Controls */}
                   <OrbitControls

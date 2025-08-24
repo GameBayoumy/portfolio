@@ -619,9 +619,8 @@ export class MemoryManager {
   private startGCTimer(): void {
     setInterval(() => {
       const usage = this.getMemoryUsage();
-      const threshold = this.config.gcThreshold * 1024 * 1024 * 1024; // Convert to bytes
       
-      if (usage > threshold) {
+      if (usage > this.config.disposeThreshold) {
         this.forceGarbageCollection();
       }
     }, this.config.gcInterval);

@@ -474,7 +474,7 @@ export class ResponsiveConfigUtils {
       desktop: { ...base.desktop, ...override.desktop },
       ultrawide: base.ultrawide || override.ultrawide 
         ? { ...base.ultrawide, ...override.ultrawide }
-        : { ...base.desktop, ...override.desktop },
+        : undefined,
     };
   }
 
