@@ -5,6 +5,7 @@ import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Stats, PerformanceMonitor } from '@react-three/drei'
 import { InteractiveArtisticBackground } from './ArtisticBackground'
 import { motion } from 'framer-motion'
+import ThreeErrorBoundary from './ErrorBoundary'
 
 interface BackgroundVisualizerProps {
   className?: string
@@ -44,9 +45,16 @@ export function BackgroundVisualizer({
 
   // Check WebGL support
   React.useEffect(() => {
-    const canvas = document.createElement('canvas')
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
-    if (!gl) {
+    if (typeof document === 'undefined') return
+    
+    try {
+      const canvas = document.createElement('canvas')
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
+      if (!gl) {
+        setIsWebGLSupported(false)
+      }
+    } catch (error) {
+      console.warn('WebGL detection failed:', error)
       setIsWebGLSupported(false)
     }
   }, [])

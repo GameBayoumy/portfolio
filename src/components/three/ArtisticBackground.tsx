@@ -148,6 +148,8 @@ export function InteractiveArtisticBackground() {
 
   // Respond to mouse movement for interactivity
   React.useEffect(() => {
+    if (typeof window === 'undefined') return
+    
     const handleMouseMove = (event: MouseEvent) => {
       const x = (event.clientX / window.innerWidth) * 2 - 1
       const y = -(event.clientY / window.innerHeight) * 2 + 1
@@ -162,7 +164,7 @@ export function InteractiveArtisticBackground() {
 
     window.addEventListener('mousemove', handleMouseMove)
     return () => window.removeEventListener('mousemove', handleMouseMove)
-  }, [])
+  }, [setConfig])
 
   return <ArtisticBackground {...config} />
 }

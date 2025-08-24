@@ -7,6 +7,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import * as THREE from 'three';
 import { performanceUtils, deviceUtils } from '@/lib/utils';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
+import { ComprehensiveThreeProvider, SafeThreeComponent } from './providers/ComprehensiveThreeProvider';
+import { useGracefulDegradation, StrategyBasedRenderer } from './providers/GracefulDegradationProvider';
+import { useWebGLCapabilities } from './providers/WebGLCapabilityDetector';
+import { useWebGLContextRecovery } from './providers/WebGLContextRecovery';
 import type { Scene3DProps } from '@/types';
 
 // Import visualizer components
@@ -232,34 +236,115 @@ const VisualizerCard = memo(({ config, isActive, onActivate, performance }: Visu
   );
 });
 
-// Main component
-const ThreeVisualizersSection = memo(function ThreeVisualizersSection({
-  className,
-  showStats = false,
-  enableNavigation = true,
-  autoRotateCamera = true,
-  maxConcurrentVisualizers = 1,
-  performanceMode = 'auto',
-}: ThreeVisualizersSectionProps) {
-  const [mounted, setMounted] = useState(false);
-  const [activeVisualizers, setActiveVisualizers] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetrics>({
-    fps: 0,
-    memoryUsage: 0,
-    renderTime: 0,
-    triangles: 0,
-    drawCalls: 0,
-  });
-  const [qualitySettings, setQualitySettings] = useState({
-    pixelRatio: 1,
-    antialias: false,
-    shadows: false,
-    postprocessing: false,
-  });
-
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const isIntersecting = useIntersectionObserver(sectionRef as React.RefObject<Element>, { threshold: 0.1 });
+// Enhanced Three.js Canvas with degradation support
+const EnhancedThreeCanvas = memo(function EnhancedThreeCanvas({
+  children,
+  showStats,
+  autoRotateCamera,
+  qualitySettings,
+}: {
+  children: React.ReactNode;
+  showStats: boolean;
+  autoRotateCamera: boolean;
+  qualitySettings: any;
+}) {
+  const { createRenderer } = useWebGLContextRecovery();
+  
+  return (
+    <StrategyBasedRenderer
+      components={{
+        'full-3d': () => (
+          <Canvas
+            camera={{ position: [0, 0, 10], fov: 45 }}
+            gl={{
+              antialias: qualitySettings.antialias,
+              powerPreference: 'high-performance',
+              alpha: false,
+            }}
+            dpr={qualitySettings.pixelRatio}
+            onCreated={({ gl }) => {
+              gl.setClearColor('#000000');
+            }}
+          >
+            <Preload all />
+            <PerspectiveCamera makeDefault position={[0, 0, 10] as any} />
+            <ambientLight intensity={0.4} color=\"white\" />
+            <directionalLight position={[10, 10, 5] as any} intensity={1} color=\"white\" />
+            <pointLight position={[-10, -10, -5] as any} color=\"#ff006e\" intensity={0.3} />
+            <OrbitControls
+              enablePan={true}
+              enableZoom={true}
+              enableRotate={true}
+              autoRotate={autoRotateCamera}
+              autoRotateSpeed={0.5}
+              minDistance={5}
+              maxDistance={50}
+            />
+            {children}
+            {showStats && <Stats />}
+          </Canvas>
+        ),
+        'basic-3d': () => (
+          <Canvas
+            camera={{ position: [0, 0, 10], fov: 45 }}
+            gl={{
+              antialias: false,
+              powerPreference: 'default',
+              alpha: false,
+            }}
+            dpr={Math.min(qualitySettings.pixelRatio, 1)}
+            onCreated={({ gl }) => {
+              gl.setClearColor('#000000');
+            }}
+          >
+            <PerspectiveCamera makeDefault position={[0, 0, 10] as any} />
+            <ambientLight intensity={0.6} color=\"white\" />
+            <directionalLight position={[10, 10, 5] as any} intensity={0.8} color=\"white\" />
+            <OrbitControls
+              enablePan={true}
+              enableZoom={true}
+              enableRotate={true}
+              autoRotate={autoRotateCamera}
+              autoRotateSpeed={0.3}
+              minDistance={5}
+              maxDistance={30}
+            />
+            {children}
+          </Canvas>
+        ),
+        'canvas-2d': () => (
+          <div className=\"flex items-center justify-center h-full bg-gray-900/50 rounded-lg\">
+            <div className=\"text-center\">
+              <div className=\"text-blue-400 text-4xl mb-4\">🎨</div>
+              <div className=\"text-gray-300 text-lg font-medium mb-2\">2D Canvas Mode</div>
+              <div className=\"text-gray-500 text-sm\">3D rendering switched to 2D compatibility mode</div>
+            </div>
+          </div>
+        ),
+        'svg-animation': () => (
+          <div className=\"flex items-center justify-center h-full bg-gray-800/50 rounded-lg\">
+            <div className=\"text-center\">
+              <div className=\"text-green-400 text-4xl mb-4 animate-pulse\">📊</div>
+              <div className=\"text-gray-300 text-lg font-medium mb-2\">SVG Animation Mode</div>
+              <div className=\"text-gray-500 text-sm\">Showing animated SVG visualization</div>
+            </div>
+          </div>
+        ),
+        'static-image': () => (
+          <div className=\"flex items-center justify-center h-full bg-gray-700/50 rounded-lg\">
+            <div className=\"text-center\">
+              <div className=\"text-purple-400 text-4xl mb-4\">🖼️</div>
+              <div className=\"text-gray-300 text-lg font-medium mb-2\">Static Display Mode</div>
+              <div className=\"text-gray-500 text-sm\">Showing static representation</div>
+            </div>
+          </div>
+        ),
+        'text-only': () => (
+          <div className=\"flex items-center justify-center h-full bg-gray-600/50 rounded-lg\">
+            <div className=\"text-center max-w-md\">
+              <div className=\"text-gray-400 text-3xl mb-4\">📝</div>
+              <div className=\"text-gray-300 text-lg font-medium mb-2\">Text Description Mode</div>
+              <div className=\"text-gray-500 text-sm\">\n                This section would normally display interactive 3D visualizations, but your \n                current environment doesn't support the required graphics features.\n              </div>\n            </div>\n          </div>\n        ),\n      }}\n    />\n  );\n});\n\n// Main component\nconst ThreeVisualizersSection = memo(function ThreeVisualizersSection({\n  className,\n  showStats = false,\n  enableNavigation = true,\n  autoRotateCamera = true,\n  maxConcurrentVisualizers = 1,\n  performanceMode = 'auto',\n}: ThreeVisualizersSectionProps) {\n  const [mounted, setMounted] = useState(false);\n  const [activeVisualizers, setActiveVisualizers] = useState<string[]>([]);\n  const [selectedCategory, setSelectedCategory] = useState<string>('all');\n  const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetrics>({\n    fps: 0,\n    memoryUsage: 0,\n    renderTime: 0,\n    triangles: 0,\n    drawCalls: 0,\n  });\n  const [qualitySettings, setQualitySettings] = useState({\n    pixelRatio: 1,\n    antialias: false,\n    shadows: false,\n    postprocessing: false,\n  });\n\n  const sectionRef = useRef<HTMLDivElement>(null);\n  const isIntersecting = useIntersectionObserver(sectionRef as React.RefObject<Element>, { threshold: 0.1 });
 
   // Visualizer configurations
   const visualizerConfigs: VisualizerConfig[] = [
@@ -366,8 +451,28 @@ const ThreeVisualizersSection = memo(function ThreeVisualizersSection({
   }
 
   return (
-    <section ref={sectionRef} className={`w-full py-12 ${className}`}>
-      <div className="max-w-7xl mx-auto px-4">
+    <ComprehensiveThreeProvider
+      config={{
+        errorBoundary: {
+          enableRetry: true,
+          maxRetries: 3,
+          reportErrors: true,
+          componentName: 'ThreeVisualizersSection',
+          performanceMode: performanceMode as any,
+        },
+        analytics: {
+          enableErrorTracking: true,
+          enablePerformanceTracking: true,
+          sessionId: `three-viz-${Date.now()}`,
+        },
+        development: {
+          enableDebugMode: process.env.NODE_ENV === 'development',
+          showPerformanceStats: showStats,
+        },
+      }}
+    >
+      <section ref={sectionRef} className={`w-full py-12 ${className}`}>
+        <div className="max-w-7xl mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-12">
           <motion.h2
@@ -473,57 +578,26 @@ const ThreeVisualizersSection = memo(function ThreeVisualizersSection({
             animate={{ opacity: isIntersecting ? 1 : 0, x: isIntersecting ? 0 : 20 }}
             transition={{ duration: 0.6, delay: 1 }}
           >
-            <VisualizerErrorBoundary>
-              <Suspense fallback={<VisualizerLoader name="3D Scene" />}>
-                <Canvas
-                  camera={{ position: [0, 0, 10], fov: 45 }}
-                  gl={{
-                    antialias: qualitySettings.antialias,
-                    powerPreference: 'high-performance',
-                    alpha: false,
-                  }}
-                  dpr={qualitySettings.pixelRatio}
-                  onCreated={({ gl }) => {
-                    gl.setClearColor('#000000');
-                  }}
-                >
-                  <Preload all />
-                  <PerspectiveCamera makeDefault position={[0, 0, 10] as any} />
+            <Suspense fallback={<VisualizerLoader name="3D Scene" />}>
+              <EnhancedThreeCanvas
+                showStats={showStats}
+                autoRotateCamera={autoRotateCamera}
+                qualitySettings={qualitySettings}
+              >
+                {/* Active Visualizers */}
+                {activeVisualizers.map((id) => {
+                  const config = visualizerConfigs.find(c => c.id === id);
+                  if (!config) return null;
                   
-                  {/* Lighting */}
-                  <ambientLight intensity={0.4} color="white" />
-                  <directionalLight position={[10, 10, 5] as any} intensity={1} color="white" />
-                  <pointLight position={[-10, -10, -5] as any} color="#ff006e" intensity={0.3} />
-                  
-                  {/* Controls */}
-                  <OrbitControls
-                    enablePan={true}
-                    enableZoom={true}
-                    enableRotate={true}
-                    autoRotate={autoRotateCamera}
-                    autoRotateSpeed={0.5}
-                    minDistance={5}
-                    maxDistance={50}
-                  />
-                  
-                  {/* Active Visualizers */}
-                  {activeVisualizers.map((id) => {
-                    const config = visualizerConfigs.find(c => c.id === id);
-                    if (!config) return null;
-                    
-                    const Component = config.component;
-                    return (
-                      <Suspense key={id} fallback={null}>
-                        <Component {...config.demoProps} />
-                      </Suspense>
-                    );
-                  })}
-                  
-                  {/* Stats */}
-                  {showStats && <Stats />}
-                </Canvas>
-              </Suspense>
-            </VisualizerErrorBoundary>
+                  const Component = config.component;
+                  return (
+                    <Suspense key={id} fallback={null}>
+                      <Component {...config.demoProps} />
+                    </Suspense>
+                  );
+                })}
+              </EnhancedThreeCanvas>
+            </Suspense>
 
             {/* Performance Monitor */}
             <PerformanceMonitor onMetricsUpdate={handleMetricsUpdate} />
@@ -547,8 +621,9 @@ const ThreeVisualizersSection = memo(function ThreeVisualizersSection({
           <p>Click on visualizers to activate them • Use mouse to navigate the 3D scene</p>
           <p className="text-sm mt-2">Performance automatically adjusts based on your device capabilities</p>
         </motion.div>
-      </div>
-    </section>
+        </div>
+      </section>
+    </ComprehensiveThreeProvider>
   );
 });
 

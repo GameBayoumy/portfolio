@@ -63,13 +63,17 @@ const VRHeadsetModel = memo(function VRHeadsetModel({
   const handlePointerOver = () => {
     if (interactive) {
       setHovered(true);
-      document.body.style.cursor = 'pointer';
+      if (typeof document !== 'undefined') {
+        document.body.style.cursor = 'pointer';
+      }
     }
   };
 
   const handlePointerOut = () => {
     setHovered(false);
-    document.body.style.cursor = 'auto';
+      if (typeof document !== 'undefined') {
+        document.body.style.cursor = 'auto';
+      }
   };
 
   // Temporarily disabled for build compatibility - Three.js JSX elements need proper type definitions

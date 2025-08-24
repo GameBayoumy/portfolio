@@ -231,7 +231,11 @@ export const ArtisticBackgroundFragmentShader = `
 
 export const ArtisticBackgroundUniforms = {
   uTime: { value: 0 },
-  uResolution: { value: [window.innerWidth, window.innerHeight] },
+  uResolution: { 
+    value: typeof window !== 'undefined' 
+      ? [window.innerWidth, window.innerHeight] 
+      : [1920, 1080] 
+  },
   uIntensity: { value: 1.0 },
   uColorA: { value: [0.2, 0.4, 0.8] },  // Deep blue
   uColorB: { value: [0.8, 0.2, 0.6] },  // Purple
