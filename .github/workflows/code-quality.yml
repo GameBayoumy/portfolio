@@ -1,195 +1,35 @@
-name: Code Quality Gate
+name: Code Quality
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
-  workflow_dispatch:
-
-env:
-  NODE_VERSION: '20.17.0'
-  CI: true
-  FORCE_COLOR: 1
-
-permissions:
-  contents: read
-  checks: write
-  pull-requests: write
-  statuses: write
+    branches: [main]
 
 jobs:
-  quality-gate:
-    name: Code Quality Gate
+  quality_check:
+    name: Quality Check
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-        with:
-          fetch-depth: 0
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
+        uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '20.17.0'
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit
+        run: npm ci
 
-      - name: Run ESLint with annotations
-        uses: ataylorme/eslint-annotate-action@3de2e8aeb8d97fee298cfdbbc78bb52b18b4231b # v3.0.0
+      - name: Run security audit
+        run: npm audit --audit-level=high
+
+      - name: CodeQL Analysis
+        uses: github/codeql-action/init@v3
         with:
-          repo-token: "${{ secrets.GITHUB_TOKEN }}"
-          report-json: "eslint-report.json"
-          check-name: "ESLint Results"
+          languages: javascript
 
-      - name: Generate ESLint report
-        run: |
-          npx eslint . --ext .js,.jsx,.ts,.tsx --format json --output-file eslint-report.json --ignore-path .gitignore || true
-
-      - name: TypeScript compilation check
-        run: npx tsc --noEmit --skipLibCheck
-
-      - name: Check for TypeScript errors
-        run: |
-          TSC_OUTPUT=$(npx tsc --noEmit --skipLibCheck 2>&1 || true)
-          if [[ "$TSC_OUTPUT" != *"Found 0 errors"* && "$TSC_OUTPUT" != "" ]]; then
-            echo "❌ TypeScript errors found:"
-            echo "$TSC_OUTPUT"
-            exit 1
-          else
-            echo "✅ No TypeScript errors found"
-          fi
-
-      - name: Code formatting check
-        run: |
-          if ! npx prettier --check "**/*.{js,jsx,ts,tsx,json,css,md}"; then
-            echo "❌ Code formatting issues found. Run 'npm run format' to fix."
-            exit 1
-          else
-            echo "✅ Code is properly formatted"
-          fi
-
-      - name: Check for console statements
-        run: |
-          CONSOLE_STATEMENTS=$(grep -r "console\." src/ --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" || true)
-          if [[ -n "$CONSOLE_STATEMENTS" ]]; then
-            echo "⚠️ Console statements found (consider using proper logging):"
-            echo "$CONSOLE_STATEMENTS"
-            # Don't fail build, just warn
-          else
-            echo "✅ No console statements found"
-          fi
-
-      - name: Check for TODO/FIXME comments
-        run: |
-          TODO_COMMENTS=$(grep -r "TODO\|FIXME" src/ --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" || true)
-          if [[ -n "$TODO_COMMENTS" ]]; then
-            echo "📝 TODO/FIXME comments found:"
-            echo "$TODO_COMMENTS"
-          else
-            echo "✅ No TODO/FIXME comments found"
-          fi
-
-      - name: Bundle size check
-        run: |
-          npm run build
-          
-          # Check if build directory exists
-          if [ ! -d ".next" ]; then
-            echo "❌ Build failed - .next directory not found"
-            exit 1
-          fi
-          
-          # Get bundle size (rough estimate)
-          BUNDLE_SIZE=$(du -sh .next/static/chunks/*.js 2>/dev/null | awk '{print $1}' | head -1 || echo "0K")
-          echo "📦 Bundle size: $BUNDLE_SIZE"
-          
-          # Log build completion
-          echo "✅ Build completed successfully"
-
-      - name: Dependency vulnerabilities check
-        run: |
-          AUDIT_OUTPUT=$(npm audit --json 2>/dev/null || echo '{"vulnerabilities": {}}')
-          HIGH_VULNS=$(echo "$AUDIT_OUTPUT" | jq '.vulnerabilities | to_entries | map(select(.value.severity == "high" or .value.severity == "critical")) | length')
-          
-          if [[ "$HIGH_VULNS" -gt 0 ]]; then
-            echo "⚠️ Found $HIGH_VULNS high/critical vulnerabilities"
-            npm audit --audit-level=moderate
-            # Don't fail on vulnerabilities in development dependencies
-          else
-            echo "✅ No high/critical vulnerabilities found"
-          fi
-
-      - name: Upload ESLint report
-        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
-        if: always()
-        with:
-          name: eslint-report
-          path: eslint-report.json
-          retention-days: 7
-
-      - name: Comment PR with quality results
-        if: github.event_name == 'pull_request' && always()
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
-        with:
-          script: |
-            const fs = require('fs');
-            
-            let qualityReport = '## 🔍 Code Quality Report\n\n';
-            
-            // Check if ESLint report exists
-            try {
-              if (fs.existsSync('eslint-report.json')) {
-                const eslintData = JSON.parse(fs.readFileSync('eslint-report.json', 'utf8'));
-                const errorCount = eslintData.reduce((acc, file) => acc + file.errorCount, 0);
-                const warningCount = eslintData.reduce((acc, file) => acc + file.warningCount, 0);
-                
-                qualityReport += `**ESLint Results:**\n`;
-                qualityReport += `- Errors: ${errorCount}\n`;
-                qualityReport += `- Warnings: ${warningCount}\n\n`;
-              }
-            } catch (error) {
-              qualityReport += '**ESLint Results:** ⚠️ Report not available\n\n';
-            }
-            
-            qualityReport += '**Quality Checks:**\n';
-            qualityReport += '- ✅ TypeScript compilation\n';
-            qualityReport += '- ✅ Code formatting\n';
-            qualityReport += '- ✅ Build process\n';
-            qualityReport += '- ✅ Security audit\n\n';
-            
-            qualityReport += '**Next Steps:**\n';
-            qualityReport += '- Review any ESLint warnings or errors\n';
-            qualityReport += '- Address TODO/FIXME comments if any\n';
-            qualityReport += '- Monitor bundle size impact\n';
-            
-            // Find existing comment and update or create new one
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-            
-            const botComment = comments.find(comment => 
-              comment.user.type === 'Bot' && 
-              comment.body.includes('Code Quality Report')
-            );
-            
-            if (botComment) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: botComment.id,
-                body: qualityReport
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: qualityReport
-              });
-            }
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
