@@ -8,6 +8,11 @@ export { default as VisualizerCard } from './VisualizerCard';
 export { default as PerformanceMonitor } from './PerformanceMonitor';
 export { default as VisualizerLoader } from './VisualizerLoader';
 
+// New Artistic 3D Background Components
+export { ArtisticBackground, InteractiveArtisticBackground } from './ArtisticBackground';
+export { BackgroundVisualizer } from './BackgroundVisualizer';
+export { default as BackgroundDemo } from './examples/BackgroundDemo';
+
 // Types
 export type {
   PerformanceMetrics,
