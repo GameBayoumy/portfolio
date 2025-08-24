@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 
 // Dynamically import 3D components for better performance
-const ThreeDBackground = dynamic(() => import('@/components/three/three-d-background'), {
+const BackgroundVisualizer = dynamic(() => import('@/components/three/BackgroundVisualizer'), {
   ssr: false,
   loading: () => <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900" />
 });
@@ -41,9 +41,9 @@ export default function Home() {
       {/* Navigation */}
       <FloatingNav />
 
-      {/* 3D Background */}
+      {/* 3D Artistic Background */}
       <Suspense fallback={<div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900" />}>
-        <ThreeDBackground />
+        <BackgroundVisualizer />
       </Suspense>
 
       {/* Main Content */}
