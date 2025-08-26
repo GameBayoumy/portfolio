@@ -65,9 +65,12 @@ jobs:
   deploy_preview:
     name: Deploy Preview
     needs: build_and_test
-    runs-on: ubuntu-latest
-  # Only attempt preview deploys when this is a PR and all required secrets are present
-  if: github.event_name == 'pull_request' && secrets.VERCEL_TOKEN != '' && secrets.VERCEL_ORG_ID != '' && secrets.VERCEL_PROJECT_ID != ''
+  runs-on: ubuntu-latest
+  # Only run for PRs when Vercel secrets are configured
+  if: github.event_name == 'pull_request' &&
+    secrets.VERCEL_TOKEN != '' &&
+    secrets.VERCEL_ORG_ID != '' &&
+    secrets.VERCEL_PROJECT_ID != ''
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -108,12 +111,29 @@ jobs:
               body: '🚀 Preview deployed at: ${{ steps.deploy.outputs.url }}'
             })
 
+  deploy_preview_skipped:
+    name: Deploy Preview (skipped)
+    needs: build_and_test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && (
+         secrets.VERCEL_TOKEN == '' ||
+         secrets.VERCEL_ORG_ID == '' ||
+         secrets.VERCEL_PROJECT_ID == ''
+       )
+    steps:
+      - name: Skip notice
+        run: |
+          echo "Skipping preview deploy: missing one or more Vercel secrets (VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID)."
+
   deploy_production:
     name: Deploy Production
     needs: build_and_test
     runs-on: ubuntu-latest
-  # Only deploy on main when all required secrets are present
-  if: github.ref == 'refs/heads/main' && secrets.VERCEL_TOKEN != '' && secrets.VERCEL_ORG_ID != '' && secrets.VERCEL_PROJECT_ID != ''
+    # Only run on main when Vercel secrets are configured
+    if: github.ref == 'refs/heads/main' &&
+        secrets.VERCEL_TOKEN != '' &&
+        secrets.VERCEL_ORG_ID != '' &&
+        secrets.VERCEL_PROJECT_ID != ''
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -140,3 +160,17 @@ jobs:
           vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
           vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
           vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+  deploy_production_skipped:
+    name: Deploy Production (skipped)
+    needs: build_and_test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && (
+         secrets.VERCEL_TOKEN == '' ||
+         secrets.VERCEL_ORG_ID == '' ||
+         secrets.VERCEL_PROJECT_ID == ''
+       )
+    steps:
+      - name: Skip notice
+        run: |
+          echo "Skipping production deploy: missing one or more Vercel secrets (VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID)."
