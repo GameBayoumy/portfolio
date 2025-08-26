@@ -1,0 +1,170 @@
+name: Deploy
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: false
+        default: 'preview'
+        type: choice
+        options: ['preview', 'staging', 'production']
+      force_deploy:
+        description: 'Force deployment even with warnings'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: deploy-${{ github.ref }}-${{ github.event.inputs.environment || 'auto' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  NODE_VERSION: '22.x'
+  BUN_VERSION: 'latest'
+  FORCE_COLOR: 1
+  CI: true
+
+jobs:
+  env:
+    name: Determine Environment
+    runs-on: ubuntu-latest
+    outputs:
+      env: ${{ steps.set.outputs.env }}
+    steps:
+      - name: Set environment output
+        id: set
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "env=${{ github.event.inputs.environment }}" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "env=preview" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "env=production" >> "$GITHUB_OUTPUT"
+          else
+            echo "env=preview" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: env
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          check-latest: true
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build application
+        run: bun run build
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ github.sha }}
+          path: .next/
+          retention-days: 1
+          include-hidden-files: true
+
+  deploy:
+    name: Deploy to Vercel
+    needs: [env, build]
+    runs-on: ubuntu-latest
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
+    environment:
+      name: ${{ needs.env.outputs.env }}
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          check-latest: true
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install Vercel CLI
+        run: bun add -g vercel@46
+
+      - name: Deploy
+        id: deploy
+        shell: bash
+        run: |
+          if [[ -z "${VERCEL_TOKEN:-}" || -z "${VERCEL_ORG_ID:-}" || -z "${VERCEL_PROJECT_ID:-}" ]]; then
+            echo "Vercel secrets missing; skipping deploy."
+            echo "url=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          ENV="${{ needs.env.outputs.env }}"
+          if [[ "$ENV" == "production" ]]; then
+            vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+            vercel build --prod --token="$VERCEL_TOKEN"
+            URL=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")
+          else
+            vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+            vercel build --token="$VERCEL_TOKEN"
+            URL=$(vercel deploy --prebuilt --token="$VERCEL_TOKEN")
+          fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 Preview deployed at: ${{ steps.deploy.outputs.url }}`
+            })
+
+  post-deploy-monitoring:
+    name: Post-deploy Monitoring Trigger
+    needs: [env, deploy]
+    runs-on: ubuntu-latest
+    if: ${{ needs.deploy.outputs.url != '' }}
+    steps:
+      - name: Trigger monitoring workflow
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const environment = '${{ needs.env.outputs.env }}';
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'monitor.yml',
+              ref: context.ref,
+              inputs: {
+                environment,
+                check_type: 'health',
+                notify_on_failure: 'true'
+              }
+            });
+            console.log(`Triggered post-deployment monitoring for ${environment}`);

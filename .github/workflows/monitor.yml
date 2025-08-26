@@ -1,0 +1,157 @@
+name: Monitor
+
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to monitor'
+        required: false
+        default: 'production'
+        type: choice
+        options: ['production', 'staging', 'preview']
+      check_type:
+        description: 'Type of monitoring check'
+        required: false
+        default: 'health'
+        type: choice
+        options: ['health', 'performance', 'security', 'full']
+      notify_on_failure:
+        description: 'Send notifications on failure'
+        required: false
+        default: true
+        type: boolean
+
+concurrency:
+  group: monitor-${{ github.event.inputs.environment || github.event.deployment_status.environment || 'auto' }}
+  cancel-in-progress: false
+
+env:
+  FORCE_COLOR: 1
+  NODE_ENV: production
+
+jobs:
+  environment:
+    name: Environment Setup
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.detect.outputs.environment }}
+      url: ${{ steps.detect.outputs.url }}
+    steps:
+      - name: Detect environment
+        id: detect
+        shell: bash
+        run: |
+          if [[ -n "${{ github.event.deployment_status.environment }}" ]]; then
+            ENV="${{ github.event.deployment_status.environment }}"
+            URL="${{ github.event.deployment_status.target_url }}"
+          else
+            ENV="${{ github.event.inputs.environment || 'production' }}"
+            URL=""
+          fi
+          if [[ -z "$URL" ]]; then
+            case "$ENV" in
+              production) URL="https://xr-portfolio.vercel.app" ;;
+              staging) URL="https://staging-xr-portfolio.vercel.app" ;;
+              preview) URL="https://preview-xr-portfolio.vercel.app" ;;
+              *) URL="https://xr-portfolio.vercel.app" ;;
+            esac
+          fi
+          echo "environment=$ENV" >> $GITHUB_OUTPUT
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+  health:
+    name: Health Checks
+    runs-on: ubuntu-latest
+    needs: environment
+    if: |
+      github.event.inputs.check_type == 'health' ||
+      github.event.inputs.check_type == 'full' ||
+      github.event.inputs.check_type == '' ||
+      github.event_name == 'deployment_status'
+    outputs:
+      status-code: ${{ steps.status.outputs.code }}
+      response-ms: ${{ steps.timing.outputs.ms }}
+      reachable: ${{ steps.connect.outputs.ok }}
+    steps:
+      - name: Connectivity
+        id: connect
+        continue-on-error: true
+        shell: bash
+        run: |
+          URL="${{ needs.environment.outputs.url }}"
+          if curl -f -s -m 30 "$URL" > /dev/null; then
+            echo "ok=true" >> $GITHUB_OUTPUT
+          else
+            echo "ok=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Status Code
+        id: status
+        continue-on-error: true
+        if: steps.connect.outputs.ok == 'true'
+        shell: bash
+        run: |
+          URL="${{ needs.environment.outputs.url }}"
+          CODE=$(curl -o /dev/null -s -w '%{http_code}' -m 30 "$URL" || echo "000")
+          echo "code=$CODE" >> $GITHUB_OUTPUT
+
+      - name: Response Time
+        id: timing
+        continue-on-error: true
+        if: steps.connect.outputs.ok == 'true'
+        shell: bash
+        run: |
+          URL="${{ needs.environment.outputs.url }}"
+          T=$(curl -o /dev/null -s -w '%{time_total}' -m 30 "$URL" || echo "0")
+          MS=$(echo "$T*1000" | bc -l | cut -d. -f1)
+          echo "ms=$MS" >> $GITHUB_OUTPUT
+
+  performance:
+    name: Performance Checks
+    runs-on: ubuntu-latest
+    needs: [environment, health]
+    if: github.event.inputs.check_type == 'performance' || github.event.inputs.check_type == 'full'
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+      - name: Quick metrics
+        shell: bash
+        run: |
+          URL="${{ needs.environment.outputs.url }}"
+          echo "DNS:    $(curl -w '%{time_namelookup}' -o /dev/null -s "$URL" | awk '{print $1*1000"ms"}')"
+          echo "Connect:$(curl -w '%{time_connect}' -o /dev/null -s "$URL" | awk '{print $1*1000"ms"}')"
+          echo "TTFB:   $(curl -w '%{time_starttransfer}' -o /dev/null -s "$URL" | awk '{print $1*1000"ms"}')"
+          echo "Total:  $(curl -w '%{time_total}' -o /dev/null -s "$URL" | awk '{print $1*1000"ms"}')"
+
+  security:
+    name: Security Checks
+    runs-on: ubuntu-latest
+    needs: [environment, health]
+    if: github.event.inputs.check_type == 'security' || github.event.inputs.check_type == 'full'
+    steps:
+      - name: Security headers
+        shell: bash
+        run: |
+          URL="${{ needs.environment.outputs.url }}"
+          HEADERS=$(curl -I -s -m 30 "$URL" || true)
+          echo "$HEADERS" | grep -i "strict-transport-security\|content-security-policy\|x-frame-options\|x-content-type-options\|referrer-policy" || true
+
+  summary:
+    name: Summary
+    runs-on: ubuntu-latest
+    needs: [environment, health, performance, security]
+    if: always()
+    steps:
+      - name: Write summary
+        shell: bash
+        run: |
+          echo "## Monitoring Report" >> $GITHUB_STEP_SUMMARY
+          echo "Environment: ${{ needs.environment.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "URL: ${{ needs.environment.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "Connectivity: ${{ needs.health.outputs.reachable }}" >> $GITHUB_STEP_SUMMARY
+          echo "Status: ${{ needs.health.outputs.status-code }}" >> $GITHUB_STEP_SUMMARY
+          echo "Response: ${{ needs.health.outputs.response-ms }} ms" >> $GITHUB_STEP_SUMMARY
+          [[ "${{ needs.health.outputs.reachable }}" == "true" ]] || exit 1

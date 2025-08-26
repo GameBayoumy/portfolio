@@ -1,38 +1,31 @@
 # GitHub Actions Workflows
 
-This repository uses clean, focused workflows for CI/CD automation.
+This repo uses a small set of focused workflows with consistent naming.
 
 ## Active Workflows
 
-### 🚀 CI/CD Pipeline (`ci-cd.yml`)
-**Main deployment workflow**
-- Triggers: Push to `main`, PRs to `main`
-- Jobs:
-  - `build_and_test`: Lints, type-checks, and builds
-  - `deploy_preview`: Deploys PR previews to Vercel
-  - `deploy_production`: Deploys main branch to production
+- CI (`ci.yml`): Lint, format check, type-check, unit tests with coverage, build verification, and security audit.
+- Deploy (`deploy.yml`): Vercel preview on PRs, production on main; comments URL on PRs; triggers monitoring.
+- Monitor (`monitor.yml`): Post-deploy health, performance, and security header checks; summarizes results.
+- Code Scanning (`code-scanning.yml`): CodeQL analysis for JavaScript/TypeScript.
+- Branch Protection (`branch-protection-setup.yml`): Optional helper to enforce branch rules and templates.
 
-### 🔍 Code Quality (`code-quality.yml`)  
-**Security and quality checks**
-- Triggers: Push to `main`, PRs to `main`
-- Jobs:
-  - `quality_check`: Security audit and CodeQL analysis
+## Required secrets
 
-## Environment Variables
-
-Required secrets:
-- `VERCEL_TOKEN`: Vercel deployment token
-- `VERCEL_ORG_ID`: Vercel organization ID
+- `VERCEL_TOKEN`: Vercel token
+- `VERCEL_ORG_ID`: Vercel org ID
 - `VERCEL_PROJECT_ID`: Vercel project ID
 
-## Usage
+## Notes
 
-1. **PR Workflow**: Creates preview deployment and runs quality checks
-2. **Main Branch**: Deploys to production after successful build
-3. **Quality Gate**: Runs security scans and code analysis
+- Legacy workflows were removed to avoid duplication. Repo templates now live statically:
+	- CODEOWNERS: `.github/CODEOWNERS`
+	- PR template: `.github/pull_request_template.md`
+	- Issue templates: `.github/ISSUE_TEMPLATE/`
+- CI runs on PRs and pushes; Deploy runs on PRs and main; Monitor can be triggered by Deploy or manually.
 
 ## Troubleshooting
 
-- Check workflow run logs in GitHub Actions tab
-- Ensure all required secrets are configured
-- Verify Node.js version matches project requirements (Node 22.x)
+- Check Actions logs for step summaries and errors.
+- Ensure the Vercel secrets are configured at repo or org level if you intend to deploy.
+- Node 22.x and Bun are used; see `package.json` scripts for details.

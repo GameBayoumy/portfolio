@@ -1,47 +1,20 @@
-# Global code owners
+# CODEOWNERS
+# See https://docs.github.com/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything
 * @GameBayoumy
 
-# GitHub Actions and CI/CD
-.github/ @GameBayoumy
-.github/workflows/ @GameBayoumy
+# Workflows and automation
+/.github/ @GameBayoumy
 
-# Configuration files  
-*.json @GameBayoumy
-*.yaml @GameBayoumy
-*.yml @GameBayoumy
-*.toml @GameBayoumy
-*.config.js @GameBayoumy
-*.config.ts @GameBayoumy
+# Source code
+/src/ @GameBayoumy
 
-# Package and dependency management
-package.json @GameBayoumy
-package-lock.json @GameBayoumy
-yarn.lock @GameBayoumy
-
-# Next.js configuration
-next.config.* @GameBayoumy
-vercel.json @GameBayoumy
-
-# TypeScript configuration
-tsconfig.json @GameBayoumy
-tsconfig.*.json @GameBayoumy
-
-# Linting and formatting
-.eslintrc* @GameBayoumy
-.prettierrc* @GameBayoumy
-.editorconfig @GameBayoumy
-
-# Security and environment
-.env* @GameBayoumy
-*.env @GameBayoumy
-
-# Testing
-jest.config.* @GameBayoumy
-*.test.* @GameBayoumy
-*.spec.* @GameBayoumy
-/tests/ @GameBayoumy
+# App routes
+/app/ @GameBayoumy
 
 # Documentation
-README.md @GameBayoumy
 /docs/ @GameBayoumy
-*.md @GameBayoumy
+
+# Sensitive config
+.env* @GameBayoumy

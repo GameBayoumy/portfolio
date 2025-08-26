@@ -1,4 +1,4 @@
-name: 🛡️ Branch Protection Setup
+name: Branch Protection
 
 on:
   workflow_dispatch:
@@ -39,7 +39,6 @@ on:
 permissions:
   actions: read
   contents: write
-  administration: write
   pull-requests: write
 
 env:
@@ -48,7 +47,7 @@ env:
 
 jobs:
   precheck:
-    name: � Precheck permissions and branch
+    name: Precheck permissions and branch
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -57,12 +56,12 @@ jobs:
       branch-exists: ${{ steps.check-existing.outputs.branch-exists }}
       has-protection: ${{ steps.check-existing.outputs.has-protection }}
     steps:
-      - name: 📥 Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           token: ${{ github.token }}
 
-      - name: 🔍 Check repository permissions
+      - name: Check repository permissions
         id: check-permissions
         run: |
           echo "🔍 Checking repository permissions..."
@@ -79,7 +78,7 @@ jobs:
           echo "repo-owner=$REPO_OWNER" >> $GITHUB_OUTPUT
           [[ "$HAS_ADMIN" == "true" ]] && echo "✅ Admin permissions detected" || echo "⚠️ Admin permissions not detected"
 
-      - name: 🔍 Check existing branch protection
+      - name: Check existing branch protection
         id: check-existing
         run: |
           BRANCH_NAME="${{ github.event.inputs.branch_name || 'main' }}"
@@ -101,76 +100,18 @@ jobs:
           fi
 
   setup-branch-protection:
-    name: 🛡️ Setup Branch Protection
+    name: Setup Branch Protection
     runs-on: ubuntu-latest
     needs: precheck
     if: needs.precheck.outputs.has-admin == 'true' && needs.precheck.outputs.branch-exists == 'true'
     timeout-minutes: 10
     steps:
-      - name: � Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           token: ${{ github.token }}
 
-      - name: �📝 Create CODEOWNERS file
-        id: create-codeowners
-        continue-on-error: true
-        run: |
-          echo "📝 Checking for CODEOWNERS file..."
-          
-          CODEOWNERS_PATH=".github/CODEOWNERS"
-          
-          if [[ ! -f "$CODEOWNERS_PATH" ]] && [[ "${{ github.event.inputs.require_code_owner_reviews }}" == "true" ]]; then
-            echo "📝 Creating CODEOWNERS file..."
-            mkdir -p .github
-            
-            # Create CODEOWNERS with sensible defaults
-            cat > "$CODEOWNERS_PATH" << 'EOF'
-# Global code owners
-* @${{ needs.precheck.outputs.repo-owner }}
-
-# GitHub Actions workflows
-/.github/ @${{ needs.precheck.outputs.repo-owner }}
-
-# Configuration files
-*.json @${{ needs.precheck.outputs.repo-owner }}
-*.js @${{ needs.precheck.outputs.repo-owner }}
-*.ts @${{ needs.precheck.outputs.repo-owner }}
-package.json @${{ needs.precheck.outputs.repo-owner }}
-tsconfig.json @${{ needs.precheck.outputs.repo-owner }}
-
-# Documentation
-*.md @${{ needs.precheck.outputs.repo-owner }}
-/docs/ @${{ needs.precheck.outputs.repo-owner }}
-
-# Security-sensitive files
-.env* @${{ needs.precheck.outputs.repo-owner }}
-/security/ @${{ needs.precheck.outputs.repo-owner }}
-EOF
-            
-            echo "✅ CODEOWNERS file created"
-            echo "codeowners-created=true" >> $GITHUB_OUTPUT
-            
-            # Stage the file
-            git config --global user.name "github-actions[bot]"
-            git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add "$CODEOWNERS_PATH"
-            
-            if git diff --cached --quiet; then
-              echo "ℹ️ No changes to commit"
-            else
-              git commit -m "chore: add CODEOWNERS file for code review requirements" \
-                -m "Automated by Branch Protection Setup workflow"
-              
-              # Try to push, but don't fail if it doesn't work
-              git push origin HEAD || echo "⚠️ Failed to push CODEOWNERS - may need manual commit"
-            fi
-          else
-            echo "✅ CODEOWNERS file already exists or not needed"
-            echo "codeowners-created=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: 🛡️ Apply branch protection rules
+      - name: Apply branch protection rules
         id: apply-protection
         continue-on-error: true
         run: |
@@ -209,9 +150,9 @@ EOF
             STATUS_CHECKS='{
               "strict": true,
               "contexts": [
-                "🎨 Code Quality",
-                "🔍 Type Check",
-                "🏗️ Build Check"
+                "Code Quality",
+                "Type Check",
+                "Build Check"
               ]
             }'
             PROTECTION_CONFIG=$(echo "$PROTECTION_CONFIG" | jq --argjson status_checks "$STATUS_CHECKS" '.required_status_checks = $status_checks')
@@ -234,201 +175,8 @@ EOF
             echo "protection-applied=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: 📋 Setup pull request template
-        id: pr-template
-        continue-on-error: true
-        run: |
-          PR_TEMPLATE_PATH=".github/pull_request_template.md"
-          
-          if [[ ! -f "$PR_TEMPLATE_PATH" ]]; then
-            echo "📋 Creating pull request template..."
-            mkdir -p .github
-            
-            cat > "$PR_TEMPLATE_PATH" << 'EOF'
-## 📋 Pull Request Summary
 
-### 🎯 What does this PR do?
-<!-- Provide a brief description of the changes -->
-
-### 🔗 Related Issues
-<!-- Link any related issues -->
-Fixes #(issue number)
-
-### 🧪 Testing
-<!-- Describe how you tested these changes -->
-- [ ] Unit tests pass
-- [ ] Integration tests pass
-- [ ] Manual testing completed
-
-### 📸 Screenshots (if applicable)
-<!-- Add screenshots for UI changes -->
-
-### ✅ Checklist
-- [ ] Code follows project style guidelines
-- [ ] Self-review completed
-- [ ] Comments added for complex code
-- [ ] Documentation updated
-- [ ] Tests added/updated
-- [ ] No breaking changes (or breaking changes documented)
-- [ ] Security considerations addressed
-
-### 🚀 Deployment Notes
-<!-- Any special deployment considerations -->
-
-### 📝 Additional Notes
-<!-- Any other information reviewers should know -->
-EOF
-            
-            echo "✅ Pull request template created"
-            echo "pr-template-created=true" >> $GITHUB_OUTPUT
-            
-            # Stage and commit if needed
-            git add "$PR_TEMPLATE_PATH"
-            
-            if ! git diff --cached --quiet; then
-              git commit -m "chore: add pull request template for better code review process" \
-                -m "Automated by Branch Protection Setup workflow"
-              
-              git push origin HEAD || echo "⚠️ Failed to push PR template - may need manual commit"
-            fi
-          else
-            echo "✅ Pull request template already exists"
-            echo "pr-template-created=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: 🎯 Setup issue templates
-        id: issue-templates
-        continue-on-error: true
-        run: |
-          TEMPLATES_DIR=".github/ISSUE_TEMPLATE"
-          
-          if [[ ! -d "$TEMPLATES_DIR" ]]; then
-            echo "🎯 Creating issue templates..."
-            mkdir -p "$TEMPLATES_DIR"
-            
-            # Bug report template
-            cat > "$TEMPLATES_DIR/bug_report.yml" << 'EOF'
-name: 🐛 Bug Report
-description: File a bug report to help us improve
-title: "[Bug]: "
-labels: ["bug", "needs-triage"]
-
-body:
-  - type: markdown
-    attributes:
-      value: |
-        Thanks for taking the time to fill out this bug report!
-
-  - type: textarea
-    id: what-happened
-    attributes:
-      label: What happened?
-      description: Tell us what you see!
-      placeholder: A clear description of what the bug is.
-    validations:
-      required: true
-
-  - type: textarea
-    id: expected
-    attributes:
-      label: What did you expect to happen?
-      description: Tell us what you expected!
-      placeholder: A clear description of what you expected to happen.
-    validations:
-      required: true
-
-  - type: textarea
-    id: reproduce
-    attributes:
-      label: Steps to reproduce
-      description: How can we reproduce this issue?
-      placeholder: |
-        1. Go to...
-        2. Click on...
-        3. See error...
-    validations:
-      required: true
-
-  - type: textarea
-    id: environment
-    attributes:
-      label: Environment
-      description: What environment are you running?
-      placeholder: |
-        - OS: [e.g., macOS, Windows, Linux]
-        - Browser: [e.g., Chrome, Safari, Firefox]
-        - Version: [e.g., 1.0.0]
-    validations:
-      required: true
-EOF
-
-            # Feature request template
-            cat > "$TEMPLATES_DIR/feature_request.yml" << 'EOF'
-name: 🚀 Feature Request
-description: Suggest an idea for this project
-title: "[Feature]: "
-labels: ["enhancement", "needs-triage"]
-
-body:
-  - type: markdown
-    attributes:
-      value: |
-        Thanks for suggesting a new feature!
-
-  - type: textarea
-    id: problem
-    attributes:
-      label: Is your feature request related to a problem?
-      description: A clear description of what the problem is.
-      placeholder: I'm always frustrated when...
-    validations:
-      required: false
-
-  - type: textarea
-    id: solution
-    attributes:
-      label: Describe the solution you'd like
-      description: A clear description of what you want to happen.
-      placeholder: I would like...
-    validations:
-      required: true
-
-  - type: textarea
-    id: alternatives
-    attributes:
-      label: Describe alternatives you've considered
-      description: Any alternative solutions or features you've considered.
-      placeholder: I've also considered...
-    validations:
-      required: false
-
-  - type: textarea
-    id: additional-context
-    attributes:
-      label: Additional context
-      description: Add any other context or screenshots about the feature request.
-    validations:
-      required: false
-EOF
-
-            echo "✅ Issue templates created"
-            echo "issue-templates-created=true" >> $GITHUB_OUTPUT
-            
-            # Stage and commit
-            git add "$TEMPLATES_DIR"
-            
-            if ! git diff --cached --quiet; then
-              git commit -m "chore: add GitHub issue templates for better issue management" \
-                -m "Automated by Branch Protection Setup workflow"
-              
-              git push origin HEAD || echo "⚠️ Failed to push issue templates - may need manual commit"
-            fi
-          else
-            echo "✅ Issue templates already exist"
-            echo "issue-templates-created=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: 📊 Generate summary report
+      - name: Generate summary report
         if: always()
         run: |
           echo "## 🛡️ Branch Protection Setup Summary" >> $GITHUB_STEP_SUMMARY
@@ -446,9 +194,9 @@ EOF
           [[ "${{ needs.precheck.outputs.has-admin }}" == "true" ]] && echo "- ✅ Admin permissions confirmed" >> $GITHUB_STEP_SUMMARY || echo "- ❌ Admin permissions missing" >> $GITHUB_STEP_SUMMARY
           [[ "${{ needs.precheck.outputs.branch-exists }}" == "true" ]] && echo "- ✅ Target branch exists" >> $GITHUB_STEP_SUMMARY || echo "- ❌ Target branch not found" >> $GITHUB_STEP_SUMMARY
           [[ "${{ steps.apply-protection.outputs.protection-applied }}" == "true" ]] && echo "- ✅ Branch protection applied" >> $GITHUB_STEP_SUMMARY || echo "- ⚠️ Branch protection not applied" >> $GITHUB_STEP_SUMMARY
-          [[ "${{ steps.create-codeowners.outputs.codeowners-created }}" == "true" ]] && echo "- ✅ CODEOWNERS file created" >> $GITHUB_STEP_SUMMARY || echo "- ℹ️ CODEOWNERS file not needed/exists" >> $GITHUB_STEP_SUMMARY
-          [[ "${{ steps.pr-template.outputs.pr-template-created }}" == "true" ]] && echo "- ✅ PR template created" >> $GITHUB_STEP_SUMMARY || echo "- ℹ️ PR template not needed/exists" >> $GITHUB_STEP_SUMMARY
-          [[ "${{ steps.issue-templates.outputs.issue-templates-created }}" == "true" ]] && echo "- ✅ Issue templates created" >> $GITHUB_STEP_SUMMARY || echo "- ℹ️ Issue templates not needed/exist" >> $GITHUB_STEP_SUMMARY
+          echo "- 📄 CODEOWNERS present: .github/CODEOWNERS" >> $GITHUB_STEP_SUMMARY
+          echo "- 📄 PR template present: .github/pull_request_template.md" >> $GITHUB_STEP_SUMMARY
+          echo "- 📄 Issue templates present: .github/ISSUE_TEMPLATE/*" >> $GITHUB_STEP_SUMMARY
           
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📝 Next Steps" >> $GITHUB_STEP_SUMMARY
@@ -457,19 +205,19 @@ EOF
           echo "3. Update CODEOWNERS file if needed with specific team/user assignments" >> $GITHUB_STEP_SUMMARY
           echo "4. Test the pull request workflow with the new templates" >> $GITHUB_STEP_SUMMARY
 
-      - name: ✅ Workflow completion
+      - name: Workflow completion
         run: |
           echo "🎉 Branch protection setup workflow completed!"
           echo "📊 Check the summary above for detailed results"
           echo "🛡️ Your repository is now better protected with these enhancements"
 
   setup-branch-protection-skipped:
-    name: 🚫 Setup skipped (no admin or branch missing)
+    name: Setup skipped (no admin or branch missing)
     runs-on: ubuntu-latest
     needs: precheck
     if: needs.precheck.outputs.has-admin != 'true' || needs.precheck.outputs.branch-exists != 'true'
     steps:
-      - name: ℹ️ Explain skip
+      - name: Explain skip
         run: |
           echo "## 🚫 Branch Protection Setup Skipped" >> $GITHUB_STEP_SUMMARY
           echo "- has-admin: ${{ needs.precheck.outputs.has-admin }}" >> $GITHUB_STEP_SUMMARY
