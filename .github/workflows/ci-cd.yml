@@ -65,12 +65,12 @@ jobs:
   deploy_preview:
     name: Deploy Preview
     needs: build_and_test
-  runs-on: ubuntu-latest
-  # Only run for PRs when Vercel secrets are configured
-  if: github.event_name == 'pull_request' &&
-    secrets.VERCEL_TOKEN != '' &&
-    secrets.VERCEL_ORG_ID != '' &&
-    secrets.VERCEL_PROJECT_ID != ''
+    runs-on: ubuntu-latest
+    # Only run for PRs when Vercel secrets are configured
+    if: github.event_name == 'pull_request' &&
+      secrets.VERCEL_TOKEN != '' &&
+      secrets.VERCEL_ORG_ID != '' &&
+      secrets.VERCEL_PROJECT_ID != ''
     steps:
       - name: Checkout
         uses: actions/checkout@v4
