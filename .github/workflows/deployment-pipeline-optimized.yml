@@ -496,10 +496,10 @@ jobs:
   post-deployment-monitoring:
     name: 📊 Post-deployment Monitoring
     runs-on: ubuntu-latest
-  needs: [pre-deployment-validation, deploy-to-vercel]
-  if: always() && needs.deploy-to-vercel.outputs.deployment-success == 'true'
-  timeout-minutes: 10
-  steps:
+    needs: [pre-deployment-validation, deploy-to-vercel]
+    if: always() && needs.deploy-to-vercel.outputs.deployment-success == 'true'
+    timeout-minutes: 10
+    steps:
       - name: 📊 Trigger monitoring workflow
         continue-on-error: true
         uses: actions/github-script@v7
@@ -543,10 +543,10 @@ jobs:
   deployment-status:
     name: 📋 Deployment Status
     runs-on: ubuntu-latest
-  needs: [pre-deployment-validation, build-and-test, deploy-to-vercel, deploy-skipped, post-deployment-monitoring]
-  if: always()
-  timeout-minutes: 5
-  steps:
+    needs: [pre-deployment-validation, build-and-test, deploy-to-vercel, deploy-skipped, post-deployment-monitoring]
+    if: always()
+    timeout-minutes: 5
+    steps:
       - name: 📋 Final status check
         run: |
           echo "📊 Deployment Pipeline Summary:"
