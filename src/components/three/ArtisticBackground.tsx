@@ -49,7 +49,6 @@ export function ArtisticBackground({
   colorScheme = 'aurora'
 }: ArtisticBackgroundProps) {
   const meshRef = useRef<THREE.Mesh>(null)
-  const materialRef = useRef<THREE.ShaderMaterial>(null)
 
   // Create shader material with custom uniforms
   const shaderMaterial = useMemo(() => {
@@ -77,9 +76,9 @@ export function ArtisticBackground({
 
   // Update shader uniforms on each frame
   useFrame((state) => {
-    if (materialRef.current) {
-      materialRef.current.uniforms.uTime.value = state.clock.elapsedTime
-      materialRef.current.uniforms.uResolution.value = [
+    if (shaderMaterial && shaderMaterial.uniforms) {
+      shaderMaterial.uniforms.uTime.value = state.clock.elapsedTime
+      shaderMaterial.uniforms.uResolution.value = [
         state.size.width * state.viewport.dpr,
         state.size.height * state.viewport.dpr
       ]
@@ -111,11 +110,6 @@ export function ArtisticBackground({
         rotation={[0, 0, -Math.PI / 8]}
       />
       
-      {/* Reference mesh for material updates */}
-      <mesh ref={materialRef as any} visible={false}>
-        <planeGeometry args={[1, 1]} />
-        <primitive object={shaderMaterial} ref={materialRef} />
-      </mesh>
     </>
   )
 }
