@@ -61,16 +61,14 @@ jobs:
           name: build-${{ github.sha }}
           path: .next/
           retention-days: 1
+          include-hidden-files: true
 
   deploy_preview:
     name: Deploy Preview
     needs: build_and_test
     runs-on: ubuntu-latest
-    # Only run for PRs when Vercel secrets are configured
-    if: github.event_name == 'pull_request' &&
-      secrets.VERCEL_TOKEN != '' &&
-      secrets.VERCEL_ORG_ID != '' &&
-      secrets.VERCEL_PROJECT_ID != ''
+  # Only run for PRs when Vercel secrets are configured
+  if: github.event_name == 'pull_request' && secrets.VERCEL_TOKEN != '' && secrets.VERCEL_ORG_ID != '' && secrets.VERCEL_PROJECT_ID != ''
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -115,11 +113,7 @@ jobs:
     name: Deploy Preview (skipped)
     needs: build_and_test
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && (
-         secrets.VERCEL_TOKEN == '' ||
-         secrets.VERCEL_ORG_ID == '' ||
-         secrets.VERCEL_PROJECT_ID == ''
-       )
+  if: github.event_name == 'pull_request' && (secrets.VERCEL_TOKEN == '' || secrets.VERCEL_ORG_ID == '' || secrets.VERCEL_PROJECT_ID == '')
     steps:
       - name: Skip notice
         run: |
@@ -129,11 +123,8 @@ jobs:
     name: Deploy Production
     needs: build_and_test
     runs-on: ubuntu-latest
-    # Only run on main when Vercel secrets are configured
-    if: github.ref == 'refs/heads/main' &&
-        secrets.VERCEL_TOKEN != '' &&
-        secrets.VERCEL_ORG_ID != '' &&
-        secrets.VERCEL_PROJECT_ID != ''
+  # Only run on main when Vercel secrets are configured
+  if: github.ref == 'refs/heads/main' && secrets.VERCEL_TOKEN != '' && secrets.VERCEL_ORG_ID != '' && secrets.VERCEL_PROJECT_ID != ''
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -165,11 +156,7 @@ jobs:
     name: Deploy Production (skipped)
     needs: build_and_test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && (
-         secrets.VERCEL_TOKEN == '' ||
-         secrets.VERCEL_ORG_ID == '' ||
-         secrets.VERCEL_PROJECT_ID == ''
-       )
+  if: github.ref == 'refs/heads/main' && (secrets.VERCEL_TOKEN == '' || secrets.VERCEL_ORG_ID == '' || secrets.VERCEL_PROJECT_ID == '')
     steps:
       - name: Skip notice
         run: |
