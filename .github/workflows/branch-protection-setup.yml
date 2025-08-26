@@ -30,68 +30,61 @@ on:
         default: true
         type: boolean
 
+permissions:
+  actions: read
+  contents: write
+  administration: write
+  pull-requests: write
+
 env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GITHUB_TOKEN: ${{ github.token }}
+  GH_TOKEN: ${{ github.token }}
 
 jobs:
-  setup-branch-protection:
-    name: 🛡️ Setup Branch Protection
+  precheck:
+    name: � Precheck permissions and branch
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
+    outputs:
+      has-admin: ${{ steps.check-permissions.outputs.has-admin }}
+      repo-owner: ${{ steps.check-permissions.outputs.repo-owner }}
+      branch-exists: ${{ steps.check-existing.outputs.branch-exists }}
+      has-protection: ${{ steps.check-existing.outputs.has-protection }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN || github.token }}
+          token: ${{ github.token }}
 
       - name: 🔍 Check repository permissions
         id: check-permissions
-        continue-on-error: true
         run: |
           echo "🔍 Checking repository permissions..."
-          
-          # Check if we have admin permissions
           REPO_INFO=$(gh api repos/${{ github.repository }} --jq '{
             permissions: .permissions,
             owner: .owner.login,
             name: .name,
             private: .private
           }' 2>/dev/null || echo '{"error": "Failed to get repo info"}')
-          
           echo "Repository info: $REPO_INFO"
-          
           HAS_ADMIN=$(echo "$REPO_INFO" | jq -r '.permissions.admin // false')
           REPO_OWNER=$(echo "$REPO_INFO" | jq -r '.owner // "unknown"')
-          
           echo "has-admin=$HAS_ADMIN" >> $GITHUB_OUTPUT
           echo "repo-owner=$REPO_OWNER" >> $GITHUB_OUTPUT
-          
-          if [[ "$HAS_ADMIN" == "true" ]]; then
-            echo "✅ Admin permissions detected"
-          else
-            echo "⚠️ Admin permissions not detected - some features may not work"
-          fi
+          [[ "$HAS_ADMIN" == "true" ]] && echo "✅ Admin permissions detected" || echo "⚠️ Admin permissions not detected"
 
       - name: 🔍 Check existing branch protection
         id: check-existing
-        continue-on-error: true
         run: |
           BRANCH_NAME="${{ github.event.inputs.branch_name || 'main' }}"
           echo "🔍 Checking existing protection for branch: $BRANCH_NAME"
-          
-          # Check if branch exists
           if gh api repos/${{ github.repository }}/branches/$BRANCH_NAME >/dev/null 2>&1; then
             echo "branch-exists=true" >> $GITHUB_OUTPUT
             echo "✅ Branch '$BRANCH_NAME' exists"
-            
-            # Check existing protection
             EXISTING_PROTECTION=$(gh api repos/${{ github.repository }}/branches/$BRANCH_NAME/protection 2>/dev/null || echo "null")
-            
             if [[ "$EXISTING_PROTECTION" != "null" ]]; then
               echo "has-protection=true" >> $GITHUB_OUTPUT
-              echo "⚠️ Branch protection already exists:"
-              echo "$EXISTING_PROTECTION" | jq -r '.required_status_checks // "No status checks"'
-              echo "$EXISTING_PROTECTION" | jq -r '.required_pull_request_reviews // "No PR reviews required"'
+              echo "⚠️ Branch protection already exists"
             else
               echo "has-protection=false" >> $GITHUB_OUTPUT
               echo "📝 No existing branch protection found"
@@ -101,7 +94,19 @@ jobs:
             echo "❌ Branch '$BRANCH_NAME' does not exist"
           fi
 
-      - name: 📝 Create CODEOWNERS file
+  setup-branch-protection:
+    name: 🛡️ Setup Branch Protection
+    runs-on: ubuntu-latest
+    needs: precheck
+    if: needs.precheck.outputs.has-admin == 'true' && needs.precheck.outputs.branch-exists == 'true'
+    timeout-minutes: 10
+    steps:
+      - name: � Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ github.token }}
+
+      - name: �📝 Create CODEOWNERS file
         id: create-codeowners
         continue-on-error: true
         run: |
@@ -116,25 +121,25 @@ jobs:
             # Create CODEOWNERS with sensible defaults
             cat > "$CODEOWNERS_PATH" << 'EOF'
 # Global code owners
-* @${{ steps.check-permissions.outputs.repo-owner }}
+* @${{ needs.precheck.outputs.repo-owner }}
 
 # GitHub Actions workflows
-/.github/ @${{ steps.check-permissions.outputs.repo-owner }}
+/.github/ @${{ needs.precheck.outputs.repo-owner }}
 
 # Configuration files
-*.json @${{ steps.check-permissions.outputs.repo-owner }}
-*.js @${{ steps.check-permissions.outputs.repo-owner }}
-*.ts @${{ steps.check-permissions.outputs.repo-owner }}
-package.json @${{ steps.check-permissions.outputs.repo-owner }}
-tsconfig.json @${{ steps.check-permissions.outputs.repo-owner }}
+*.json @${{ needs.precheck.outputs.repo-owner }}
+*.js @${{ needs.precheck.outputs.repo-owner }}
+*.ts @${{ needs.precheck.outputs.repo-owner }}
+package.json @${{ needs.precheck.outputs.repo-owner }}
+tsconfig.json @${{ needs.precheck.outputs.repo-owner }}
 
 # Documentation
-*.md @${{ steps.check-permissions.outputs.repo-owner }}
-/docs/ @${{ steps.check-permissions.outputs.repo-owner }}
+*.md @${{ needs.precheck.outputs.repo-owner }}
+/docs/ @${{ needs.precheck.outputs.repo-owner }}
 
 # Security-sensitive files
-.env* @${{ steps.check-permissions.outputs.repo-owner }}
-/security/ @${{ steps.check-permissions.outputs.repo-owner }}
+.env* @${{ needs.precheck.outputs.repo-owner }}
+/security/ @${{ needs.precheck.outputs.repo-owner }}
 EOF
             
             echo "✅ CODEOWNERS file created"
@@ -148,10 +153,8 @@ EOF
             if git diff --cached --quiet; then
               echo "ℹ️ No changes to commit"
             else
-              git commit -m "chore: add CODEOWNERS file for code review requirements
-
-🤖 Generated with Claude Code
-Co-Authored-By: Claude <noreply@anthropic.com>"
+              git commit -m "chore: add CODEOWNERS file for code review requirements" \
+                -m "Automated by Branch Protection Setup workflow"
               
               # Try to push, but don't fail if it doesn't work
               git push origin HEAD || echo "⚠️ Failed to push CODEOWNERS - may need manual commit"
@@ -163,7 +166,6 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 
       - name: 🛡️ Apply branch protection rules
         id: apply-protection
-        if: steps.check-permissions.outputs.has-admin == 'true' && steps.check-existing.outputs.branch-exists == 'true'
         continue-on-error: true
         run: |
           BRANCH_NAME="${{ github.event.inputs.branch_name || 'main' }}"
@@ -278,10 +280,8 @@ EOF
             git add "$PR_TEMPLATE_PATH"
             
             if ! git diff --cached --quiet; then
-              git commit -m "chore: add pull request template for better code review process
-
-🤖 Generated with Claude Code
-Co-Authored-By: Claude <noreply@anthropic.com>"
+              git commit -m "chore: add pull request template for better code review process" \
+                -m "Automated by Branch Protection Setup workflow"
               
               git push origin HEAD || echo "⚠️ Failed to push PR template - may need manual commit"
             fi
@@ -412,10 +412,8 @@ EOF
             git add "$TEMPLATES_DIR"
             
             if ! git diff --cached --quiet; then
-              git commit -m "chore: add GitHub issue templates for better issue management
-
-🤖 Generated with Claude Code
-Co-Authored-By: Claude <noreply@anthropic.com>"
+              git commit -m "chore: add GitHub issue templates for better issue management" \
+                -m "Automated by Branch Protection Setup workflow"
               
               git push origin HEAD || echo "⚠️ Failed to push issue templates - may need manual commit"
             fi
@@ -439,8 +437,8 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
           echo "" >> $GITHUB_STEP_SUMMARY
           
           echo "### ✅ Results" >> $GITHUB_STEP_SUMMARY
-          [[ "${{ steps.check-permissions.outputs.has-admin }}" == "true" ]] && echo "- ✅ Admin permissions confirmed" >> $GITHUB_STEP_SUMMARY || echo "- ❌ Admin permissions missing" >> $GITHUB_STEP_SUMMARY
-          [[ "${{ steps.check-existing.outputs.branch-exists }}" == "true" ]] && echo "- ✅ Target branch exists" >> $GITHUB_STEP_SUMMARY || echo "- ❌ Target branch not found" >> $GITHUB_STEP_SUMMARY
+          [[ "${{ needs.precheck.outputs.has-admin }}" == "true" ]] && echo "- ✅ Admin permissions confirmed" >> $GITHUB_STEP_SUMMARY || echo "- ❌ Admin permissions missing" >> $GITHUB_STEP_SUMMARY
+          [[ "${{ needs.precheck.outputs.branch-exists }}" == "true" ]] && echo "- ✅ Target branch exists" >> $GITHUB_STEP_SUMMARY || echo "- ❌ Target branch not found" >> $GITHUB_STEP_SUMMARY
           [[ "${{ steps.apply-protection.outputs.protection-applied }}" == "true" ]] && echo "- ✅ Branch protection applied" >> $GITHUB_STEP_SUMMARY || echo "- ⚠️ Branch protection not applied" >> $GITHUB_STEP_SUMMARY
           [[ "${{ steps.create-codeowners.outputs.codeowners-created }}" == "true" ]] && echo "- ✅ CODEOWNERS file created" >> $GITHUB_STEP_SUMMARY || echo "- ℹ️ CODEOWNERS file not needed/exists" >> $GITHUB_STEP_SUMMARY
           [[ "${{ steps.pr-template.outputs.pr-template-created }}" == "true" ]] && echo "- ✅ PR template created" >> $GITHUB_STEP_SUMMARY || echo "- ℹ️ PR template not needed/exists" >> $GITHUB_STEP_SUMMARY
@@ -458,3 +456,15 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
           echo "🎉 Branch protection setup workflow completed!"
           echo "📊 Check the summary above for detailed results"
           echo "🛡️ Your repository is now better protected with these enhancements"
+
+  setup-branch-protection-skipped:
+    name: 🚫 Setup skipped (no admin or branch missing)
+    runs-on: ubuntu-latest
+    needs: precheck
+    if: needs.precheck.outputs.has-admin != 'true' || needs.precheck.outputs.branch-exists != 'true'
+    steps:
+      - name: ℹ️ Explain skip
+        run: |
+          echo "## 🚫 Branch Protection Setup Skipped" >> $GITHUB_STEP_SUMMARY
+          echo "- has-admin: ${{ needs.precheck.outputs.has-admin }}" >> $GITHUB_STEP_SUMMARY
+          echo "- branch-exists: ${{ needs.precheck.outputs.branch-exists }}" >> $GITHUB_STEP_SUMMARY

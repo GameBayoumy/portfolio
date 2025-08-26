@@ -127,7 +127,7 @@ jobs:
       - name: 🔑 Setup cache keys
         id: cache-setup
         run: |
-            PACKAGE_HASH="${{ hashFiles('package.json', 'bun.lock', 'bun.lockb', 'package-lock.json') }}"
+          PACKAGE_HASH="${{ hashFiles('package.json', 'bun.lock', 'bun.lockb', 'package-lock.json') }}"
           CACHE_KEY="deployment-deps-${{ runner.os }}-${{ env.NODE_VERSION }}-${{ env.BUN_VERSION }}-${PACKAGE_HASH}"
           echo "cache-key=$CACHE_KEY" >> $GITHUB_OUTPUT
           echo "🔑 Cache key: $CACHE_KEY"
@@ -311,12 +311,17 @@ jobs:
     runs-on: ubuntu-latest
     needs: [pre-deployment-validation, build-and-test]
     if: |
-      always() && 
+      always() &&
+      needs.pre-deployment-validation.outputs.has-secrets == 'true' &&
       needs.pre-deployment-validation.outputs.should-deploy == 'true' &&
-      (needs.build-and-test.result == 'success' || 
+      (needs.build-and-test.result == 'success' ||
        needs.pre-deployment-validation.outputs.skip-tests == 'true' ||
        github.event.inputs.force_deploy == 'true')
     timeout-minutes: 15
+    outputs:
+      deployment-url: ${{ steps.deploy.outputs.deployment-url }}
+      deployment-success: ${{ steps.deploy.outputs.deployment-success }}
+      verification-success: ${{ steps.verify.outputs.verification-success }}
     environment:
       name: ${{ needs.pre-deployment-validation.outputs.deployment-environment }}
       url: ${{ steps.deploy.outputs.deployment-url }}
@@ -335,7 +340,12 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: 📦 Install Vercel CLI
-        run: bun add -g vercel@latest
+        run: bun add -g vercel@46
+
+      - name: 🔐 Export Vercel token
+        run: echo "VERCEL_TOKEN is set"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
       - name: 🔗 Link to Vercel project
         run: |
@@ -459,14 +469,37 @@ jobs:
               body: comment
             });
 
+  # Job 3b: Explicit skipped notice when deployment cannot run
+  deploy-skipped:
+    name: 🚫 Deploy skipped
+    runs-on: ubuntu-latest
+    needs: [pre-deployment-validation, build-and-test]
+    if: |
+      always() && (
+        needs.pre-deployment-validation.outputs.should-deploy != 'true' ||
+        needs.pre-deployment-validation.outputs.has-secrets != 'true'
+      )
+    steps:
+      - name: ℹ️ Explain why deployment skipped
+        run: |
+          echo "Deployment skipped. Reasons:"
+          echo "- has-secrets: ${{ needs.pre-deployment-validation.outputs.has-secrets }}"
+          echo "- should-deploy: ${{ needs.pre-deployment-validation.outputs.should-deploy }}"
+          echo "- build-and-test result: ${{ needs.build-and-test.result }}"
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚫 Deployment Skipped" >> $GITHUB_STEP_SUMMARY
+          echo "- has-secrets: ${{ needs.pre-deployment-validation.outputs.has-secrets }}" >> $GITHUB_STEP_SUMMARY
+          echo "- should-deploy: ${{ needs.pre-deployment-validation.outputs.should-deploy }}" >> $GITHUB_STEP_SUMMARY
+          echo "- build-and-test: ${{ needs.build-and-test.result }}" >> $GITHUB_STEP_SUMMARY
+
   # Job 4: Post-deployment monitoring
   post-deployment-monitoring:
     name: 📊 Post-deployment Monitoring
     runs-on: ubuntu-latest
-    needs: [pre-deployment-validation, deploy-to-vercel]
-    if: always() && needs.deploy-to-vercel.outputs.deployment-success == 'true'
-    timeout-minutes: 10
-    steps:
+  needs: [pre-deployment-validation, deploy-to-vercel]
+  if: always() && needs.deploy-to-vercel.outputs.deployment-success == 'true'
+  timeout-minutes: 10
+  steps:
       - name: 📊 Trigger monitoring workflow
         continue-on-error: true
         uses: actions/github-script@v7
@@ -510,29 +543,39 @@ jobs:
   deployment-status:
     name: 📋 Deployment Status
     runs-on: ubuntu-latest
-    needs: [pre-deployment-validation, build-and-test, deploy-to-vercel, post-deployment-monitoring]
-    if: always()
-    timeout-minutes: 5
-    steps:
+  needs: [pre-deployment-validation, build-and-test, deploy-to-vercel, deploy-skipped, post-deployment-monitoring]
+  if: always()
+  timeout-minutes: 5
+  steps:
       - name: 📋 Final status check
         run: |
           echo "📊 Deployment Pipeline Summary:"
           echo "Pre-deployment: ${{ needs.pre-deployment-validation.result }}"
           echo "Build & Test: ${{ needs.build-and-test.result }}"
-          echo "Deploy to Vercel: ${{ needs.deploy-to-vercel.result }}"
+          echo "Deploy to Vercel: ${{ needs.deploy-to-vercel.result }} (skipped job ran: ${{ needs.deploy-skipped.result }})"
           echo "Post-deployment: ${{ needs.post-deployment-monitoring.result }}"
-          
+
           # Check for critical failures
           FAILED_JOBS=""
-          [[ "${{ needs.pre-deployment-validation.result }}" == "failure" ]] && FAILED_JOBS="${FAILED_JOBS}pre-deployment "
-          [[ "${{ needs.build-and-test.result }}" == "failure" && "${{ needs.pre-deployment-validation.outputs.skip-tests }}" != "true" ]] && FAILED_JOBS="${FAILED_JOBS}build-test "
-          [[ "${{ needs.deploy-to-vercel.result }}" == "failure" && "${{ needs.pre-deployment-validation.outputs.should-deploy }}" == "true" ]] && FAILED_JOBS="${FAILED_JOBS}deployment "
-          
+          if [[ "${{ needs.pre-deployment-validation.result }}" == "failure" ]]; then
+            FAILED_JOBS="${FAILED_JOBS}pre-deployment "
+          fi
+          if [[ "${{ needs.build-and-test.result }}" == "failure" && "${{ needs.pre-deployment-validation.outputs.skip-tests }}" != "true" ]]; then
+            FAILED_JOBS="${FAILED_JOBS}build-test "
+          fi
+          if [[ "${{ needs.deploy-to-vercel.result }}" == "failure" && "${{ needs.pre-deployment-validation.outputs.should-deploy }}" == "true" && "${{ needs.pre-deployment-validation.outputs.has-secrets }}" == "true" ]]; then
+            FAILED_JOBS="${FAILED_JOBS}deployment "
+          fi
+
           if [[ -n "$FAILED_JOBS" ]]; then
             echo "❌ Pipeline failed in: $FAILED_JOBS"
             echo "Check the failed job logs for details."
             exit 1
           else
             echo "✅ Deployment pipeline completed successfully!"
-            [[ "${{ needs.pre-deployment-validation.outputs.should-deploy }}" == "true" ]] && echo "🚀 Application deployed successfully!" || echo "🏗️ Build completed (no deployment)"
+            if [[ "${{ needs.pre-deployment-validation.outputs.should-deploy }}" == "true" ]]; then
+              echo "🚀 Application deployed successfully!"
+            else
+              echo "🏗️ Build completed (no deployment)"
+            fi
           fi
