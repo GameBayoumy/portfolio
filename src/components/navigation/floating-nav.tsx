@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
 import { Home, User, Briefcase, Github, Linkedin as LinkedinIcon, Mail, Menu, X } from 'lucide-react';
+
+
 
 interface NavItem {
   id: string;
@@ -23,11 +25,27 @@ const navItems: NavItem[] = [
 export default function FloatingNav() {
   const [activeSection, setActiveSection] = useState('hero');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  // We'll use a motion value for scroll progress and top offset
+  const scrollProgress = useMotionValue(0);
+  const smoothScrollProgress = useSpring(scrollProgress, { stiffness: 120, damping: 20 });
+  const topOffset = useMotionValue(24); // px, default top-6
+  const smoothTopOffset = useSpring(topOffset, { stiffness: 120, damping: 20 });
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
+      const scrollY = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = docHeight > 0 ? scrollY / docHeight : 0;
+      scrollProgress.set(progress);
+      // Animate top offset for nav bar
+      if (scrollY > 50) {
+        setIsScrolled(true);
+        topOffset.set(16); // px, top-4
+      } else {
+        setIsScrolled(false);
+        topOffset.set(24); // px, top-6
+      }
 
       // Find active section
       const sections = navItems.map(item => item.id);
@@ -47,7 +65,7 @@ export default function FloatingNav() {
     handleScroll(); // Initial call
 
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [scrollProgress, topOffset]);
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -61,9 +79,10 @@ export default function FloatingNav() {
     <>
       {/* Desktop Navigation */}
       <motion.nav
-        className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-50 hidden md:block transition-all duration-300 ${
-          isScrolled ? 'top-4' : 'top-6'
-        }`}
+        className={
+          'fixed left-1/2 transform -translate-x-1/2 z-50 hidden md:block transition-all duration-300'
+        }
+        style={{ top: smoothTopOffset }}
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.8, ease: 'easeOut' }}
@@ -237,10 +256,7 @@ export default function FloatingNav() {
       {/* Progress Indicator */}
       <motion.div
         className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500 z-50 origin-left"
-        style={{
-          scaleX: typeof window !== 'undefined' ? 
-            (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) : 0
-        }}
+        style={{ scaleX: smoothScrollProgress }}
         initial={{ scaleX: 0 }}
         transition={{ duration: 0.1 }}
       />
