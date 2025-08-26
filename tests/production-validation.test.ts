@@ -346,3 +346,14 @@ if (require.main === module) {
   console.log('💡 Recommendations:');
   report.recommendations.forEach(rec => console.log(`   ${rec}`));
 }
+
+// Minimal sanity test to ensure the suite has at least one test
+describe('ProductionValidator', () => {
+  it('should run validations and produce a summary', () => {
+    const validator = new ProductionValidator();
+    const results = validator.runAllValidations();
+    const report = validator.generateReport();
+    expect(Array.isArray(results)).toBe(true);
+    expect(report.summary.total).toBeGreaterThan(0);
+  });
+});

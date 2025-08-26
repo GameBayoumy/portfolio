@@ -11,6 +11,8 @@ const customJestConfig = {
   moduleNameMapper: {
     // Handle module aliases (this will be automatically configured for you based on your tsconfig.json paths)
     '^@/(.*)$': '<rootDir>/src/$1',
+  // Mock d3 to avoid ESM parsing issues in Jest and heavy DOM work
+  '^d3$': '<rootDir>/tests/__mocks__/d3.ts',
   },
   testEnvironment: 'jest-environment-jsdom',
   testMatch: [
@@ -31,7 +33,7 @@ const customJestConfig = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/'],
   transformIgnorePatterns: [
-    '/node_modules/',
+    '/node_modules/(?!(d3|d3-[^/]+|internmap|delaunator|robust-predicates)/)',
     '^.+\\.module\\.(css|sass|scss)$',
   ],
 };

@@ -57,3 +57,7 @@ global.ResizeObserver = class ResizeObserver {
   observe() {}
   unobserve() {}
 };
+
+// Stub scrollTo to avoid jsdom "not implemented" warnings in tests
+// This keeps test output clean without affecting behavior.
+(window as any).scrollTo = jest.fn();

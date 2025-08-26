@@ -59,7 +59,7 @@ export default function LinkedInVisualizersSection() {
               animate={{ opacity: 1, y: 0 }}
               className="bg-red-500/10 border border-red-500/30 rounded-2xl p-8"
             >
-              <h3 className="text-red-400 text-xl font-semibold mb-2">
+              <h3 className="text-red-400 text-xl font-semibold mb-2" role="alert">
                 Failed to load LinkedIn data
               </h3>
               <p className="text-red-300 mb-4">{error}</p>
@@ -91,31 +91,31 @@ export default function LinkedInVisualizersSection() {
             className="space-y-8"
           >
             {/* Profile Header */}
-            {profile && (
+            {profile?.personalInfo && (
               <div className="bg-black/40 backdrop-blur-sm rounded-2xl border border-white/10 p-8 mb-8">
                 <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
                   <div className="w-24 h-24 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-2xl flex items-center justify-center border border-white/10">
                     <span className="text-4xl font-bold text-white/60">
-                      {profile.personalInfo.name.charAt(0)}
+                      {profile.personalInfo?.name?.charAt(0) ?? 'U'}
                     </span>
                   </div>
                   <div className="flex-1 text-center md:text-left">
                     <h2 className="text-3xl font-bold text-white mb-2">
-                      {profile.personalInfo.name}
+                      {profile.personalInfo?.name ?? 'Unknown User'}
                     </h2>
                     <p className="text-purple-300 text-xl mb-3">
-                      {profile.personalInfo.headline}
+                      {profile.personalInfo?.headline ?? 'Professional'}
                     </p>
                     <p className="text-white/60 mb-4">
-                      {profile.personalInfo.location}
+                      {profile.personalInfo?.location ?? 'Earth'}
                     </p>
                     <p className="text-white/80 leading-relaxed max-w-3xl">
-                      {profile.personalInfo.summary}
+                      {profile.personalInfo?.summary ?? 'Profile information is unavailable.'}
                     </p>
                     <div className="flex items-center justify-center md:justify-start gap-4 mt-4 text-sm text-white/50">
-                      <span>{profile.personalInfo.connectionCount} connections</span>
+                      <span>{profile.personalInfo?.connectionCount ?? 0} connections</span>
                       <span>•</span>
-                      <span>{profile.personalInfo.followerCount} followers</span>
+                      <span>{profile.personalInfo?.followerCount ?? 0} followers</span>
                     </div>
                   </div>
                 </div>

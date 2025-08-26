@@ -84,7 +84,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, subtitle, icon, color
 const ProfessionalStats: React.FC<ProfessionalStatsProps> = ({ stats, loading }) => {
   if (loading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6" aria-busy="true" aria-live="polite">
         {[...Array(8)].map((_, idx) => (
           <motion.div
             key={idx}
@@ -110,7 +110,11 @@ const ProfessionalStats: React.FC<ProfessionalStatsProps> = ({ stats, loading })
     );
   }
 
-  if (!stats) return null;
+  if (!stats) {
+    return (
+      <div data-testid="professional-stats" className="text-white/60">No stats available</div>
+    );
+  }
 
   const statCards = [
     {
