@@ -35,4 +35,4 @@ Required secrets:
 
 - Check workflow run logs in GitHub Actions tab
 - Ensure all required secrets are configured
-- Verify Node.js version matches project requirements (20.17.0)
+- Verify Node.js version matches project requirements (Node 22.x)
