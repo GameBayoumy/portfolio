@@ -1,11 +1,11 @@
 # XR Developer Portfolio - Sharif Bayoumy
 
-A modern, interactive portfolio showcasing XR (Virtual/Augmented Reality) development work, built with Next.js 14, Three.js, and cutting-edge web technologies.
+A modern, interactive portfolio showcasing XR (Virtual/Augmented Reality) development work, built with Next.js 15, Three.js, and cutting-edge web technologies.
 
 ![Portfolio Preview](https://img.shields.io/badge/Status-Live-brightgreen)
-![Next.js](https://img.shields.io/badge/Next.js-14-black)
+![Next.js](https://img.shields.io/badge/Next.js-15-black)
 ![Three.js](https://img.shields.io/badge/Three.js-Latest-orange)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)
 
 ## ✨ Features
 
@@ -23,7 +23,7 @@ A modern, interactive portfolio showcasing XR (Virtual/Augmented Reality) develo
 ## 🚀 Tech Stack
 
 ### Core Framework
-- **Next.js 14** - React framework with App Router
+- **Next.js 15** - React framework with App Router and React 19 support
 - **TypeScript** - Type safety and developer experience
 - **Tailwind CSS** - Utility-first styling
 
@@ -110,7 +110,7 @@ src/
 ├── hooks/              # Custom React hooks
 └── styles/             # Global styles
 
-app/                    # Next.js 14 App Router
+app/                    # Next.js 15 App Router
 ├── api/                # API routes (version, sitemap, etc.)
 ├── layout.tsx          # Root layout
 ├── page.tsx            # Home page

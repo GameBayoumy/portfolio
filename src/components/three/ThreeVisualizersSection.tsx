@@ -268,9 +268,9 @@ const EnhancedThreeCanvas = memo(function EnhancedThreeCanvas({
           >
             <Preload all />
             <PerspectiveCamera makeDefault position={[0, 0, 10] as any} />
-            <ambientLight intensity={0.4} color=\"white\" />
-            <directionalLight position={[10, 10, 5] as any} intensity={1} color=\"white\" />
-            <pointLight position={[-10, -10, -5] as any} color=\"#ff006e\" intensity={0.3} />
+            <ambientLight intensity={0.4} color="white" />
+            <directionalLight position={[10, 10, 5] as any} intensity={1} color="white" />
+            <pointLight position={[-10, -10, -5] as any} color="#ff006e" intensity={0.3} />
             <OrbitControls
               enablePan={true}
               enableZoom={true}
@@ -298,8 +298,8 @@ const EnhancedThreeCanvas = memo(function EnhancedThreeCanvas({
             }}
           >
             <PerspectiveCamera makeDefault position={[0, 0, 10] as any} />
-            <ambientLight intensity={0.6} color=\"white\" />
-            <directionalLight position={[10, 10, 5] as any} intensity={0.8} color=\"white\" />
+            <ambientLight intensity={0.6} color="white" />
+            <directionalLight position={[10, 10, 5] as any} intensity={0.8} color="white" />
             <OrbitControls
               enablePan={true}
               enableZoom={true}
@@ -313,38 +313,77 @@ const EnhancedThreeCanvas = memo(function EnhancedThreeCanvas({
           </Canvas>
         ),
         'canvas-2d': () => (
-          <div className=\"flex items-center justify-center h-full bg-gray-900/50 rounded-lg\">
-            <div className=\"text-center\">
-              <div className=\"text-blue-400 text-4xl mb-4\">🎨</div>
-              <div className=\"text-gray-300 text-lg font-medium mb-2\">2D Canvas Mode</div>
-              <div className=\"text-gray-500 text-sm\">3D rendering switched to 2D compatibility mode</div>
+          <div className="flex items-center justify-center h-full bg-gray-900/50 rounded-lg">
+            <div className="text-center">
+              <div className="text-blue-400 text-4xl mb-4">🎨</div>
+              <div className="text-gray-300 text-lg font-medium mb-2">2D Canvas Mode</div>
+              <div className="text-gray-500 text-sm">3D rendering switched to 2D compatibility mode</div>
             </div>
           </div>
         ),
         'svg-animation': () => (
-          <div className=\"flex items-center justify-center h-full bg-gray-800/50 rounded-lg\">
-            <div className=\"text-center\">
-              <div className=\"text-green-400 text-4xl mb-4 animate-pulse\">📊</div>
-              <div className=\"text-gray-300 text-lg font-medium mb-2\">SVG Animation Mode</div>
-              <div className=\"text-gray-500 text-sm\">Showing animated SVG visualization</div>
+          <div className="flex items-center justify-center h-full bg-gray-800/50 rounded-lg">
+            <div className="text-center">
+              <div className="text-green-400 text-4xl mb-4 animate-pulse">📊</div>
+              <div className="text-gray-300 text-lg font-medium mb-2">SVG Animation Mode</div>
+              <div className="text-gray-500 text-sm">Showing animated SVG visualization</div>
             </div>
           </div>
         ),
         'static-image': () => (
-          <div className=\"flex items-center justify-center h-full bg-gray-700/50 rounded-lg\">
-            <div className=\"text-center\">
-              <div className=\"text-purple-400 text-4xl mb-4\">🖼️</div>
-              <div className=\"text-gray-300 text-lg font-medium mb-2\">Static Display Mode</div>
-              <div className=\"text-gray-500 text-sm\">Showing static representation</div>
+          <div className="flex items-center justify-center h-full bg-gray-700/50 rounded-lg">
+            <div className="text-center">
+              <div className="text-purple-400 text-4xl mb-4">🖼️</div>
+              <div className="text-gray-300 text-lg font-medium mb-2">Static Display Mode</div>
+              <div className="text-gray-500 text-sm">Showing static representation</div>
             </div>
           </div>
         ),
         'text-only': () => (
-          <div className=\"flex items-center justify-center h-full bg-gray-600/50 rounded-lg\">
-            <div className=\"text-center max-w-md\">
-              <div className=\"text-gray-400 text-3xl mb-4\">📝</div>
-              <div className=\"text-gray-300 text-lg font-medium mb-2\">Text Description Mode</div>
-              <div className=\"text-gray-500 text-sm\">\n                This section would normally display interactive 3D visualizations, but your \n                current environment doesn't support the required graphics features.\n              </div>\n            </div>\n          </div>\n        ),\n      }}\n    />\n  );\n});\n\n// Main component\nconst ThreeVisualizersSection = memo(function ThreeVisualizersSection({\n  className,\n  showStats = false,\n  enableNavigation = true,\n  autoRotateCamera = true,\n  maxConcurrentVisualizers = 1,\n  performanceMode = 'auto',\n}: ThreeVisualizersSectionProps) {\n  const [mounted, setMounted] = useState(false);\n  const [activeVisualizers, setActiveVisualizers] = useState<string[]>([]);\n  const [selectedCategory, setSelectedCategory] = useState<string>('all');\n  const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetrics>({\n    fps: 0,\n    memoryUsage: 0,\n    renderTime: 0,\n    triangles: 0,\n    drawCalls: 0,\n  });\n  const [qualitySettings, setQualitySettings] = useState({\n    pixelRatio: 1,\n    antialias: false,\n    shadows: false,\n    postprocessing: false,\n  });\n\n  const sectionRef = useRef<HTMLDivElement>(null);\n  const isIntersecting = useIntersectionObserver(sectionRef as React.RefObject<Element>, { threshold: 0.1 });
+          <div className="flex items-center justify-center h-full bg-gray-600/50 rounded-lg">
+            <div className="text-center max-w-md">
+              <div className="text-gray-400 text-3xl mb-4">📝</div>
+              <div className="text-gray-300 text-lg font-medium mb-2">Text Description Mode</div>
+              <div className="text-gray-500 text-sm">
+                This section would normally display interactive 3D visualizations, but your 
+                current environment doesn't support the required graphics features.
+              </div>
+            </div>
+          </div>
+        ),
+      }}
+    />
+  );
+});
+
+// Main component
+const ThreeVisualizersSection = memo(function ThreeVisualizersSection({
+  className,
+  showStats = false,
+  enableNavigation = true,
+  autoRotateCamera = true,
+  maxConcurrentVisualizers = 1,
+  performanceMode = 'auto',
+}: ThreeVisualizersSectionProps) {
+  const [mounted, setMounted] = useState(false);
+  const [activeVisualizers, setActiveVisualizers] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetrics>({
+    fps: 0,
+    memoryUsage: 0,
+    renderTime: 0,
+    triangles: 0,
+    drawCalls: 0,
+  });
+  const [qualitySettings, setQualitySettings] = useState({
+    pixelRatio: 1,
+    antialias: false,
+    shadows: false,
+    postprocessing: false,
+  });
+
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const isIntersecting = useIntersectionObserver(sectionRef as React.RefObject<Element>, { threshold: 0.1 });
 
   // Visualizer configurations
   const visualizerConfigs: VisualizerConfig[] = [

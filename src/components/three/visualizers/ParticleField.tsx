@@ -386,7 +386,7 @@ export default function ParticleField({
   };
   
   useEffect(() => {
-    if (showControls) {
+    if (showControls && typeof document !== 'undefined') {
       document.addEventListener('keydown', handleKeyPress);
       return () => document.removeEventListener('keydown', handleKeyPress);
     }

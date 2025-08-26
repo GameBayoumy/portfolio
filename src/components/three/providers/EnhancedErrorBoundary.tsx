@@ -485,14 +485,18 @@ export class EnhancedErrorBoundary extends Component<EnhancedErrorBoundaryProps,
       this.setState({ contextLost: true });
     };
 
-    // Listen for context events on the document
-    document.addEventListener('webglcontextrestored', handleContextRestored);
-    document.addEventListener('webglcontextlost', handleContextLost);
+    // Listen for context events on the document (only in browser)
+    if (typeof document !== 'undefined') {
+      document.addEventListener('webglcontextrestored', handleContextRestored);
+      document.addEventListener('webglcontextlost', handleContextLost);
+    }
 
     // Cleanup listeners when component unmounts
     const cleanup = () => {
-      document.removeEventListener('webglcontextrestored', handleContextRestored);
-      document.removeEventListener('webglcontextlost', handleContextLost);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('webglcontextrestored', handleContextRestored);
+        document.removeEventListener('webglcontextlost', handleContextLost);
+      }
     };
 
     // Store cleanup function

@@ -76,7 +76,72 @@ class WebGLCapabilityDetector {
     return this.detectionPromise;
   }
 
+  private createFallbackCapabilities(errors: string[]): WebGLCapabilities {
+    return {
+      supported: false,
+      version: 'none',
+      context: null,
+      extensions: [],
+      parameters: {
+        maxTextureSize: 0,
+        maxCubeMapTextureSize: 0,
+        maxRenderBufferSize: 0,
+        maxTextureImageUnits: 0,
+        maxVertexTextureImageUnits: 0,
+        maxCombinedTextureImageUnits: 0,
+        maxVertexAttribs: 0,
+        maxVaryingVectors: 0,
+        maxFragmentUniformVectors: 0,
+        maxVertexUniformVectors: 0,
+      },
+      features: {
+        antialias: false,
+        depthBuffer: false,
+        stencilBuffer: false,
+        preserveDrawingBuffer: false,
+        premultipliedAlpha: false,
+        alpha: false,
+        desynchronized: false,
+        failIfMajorPerformanceCaveat: false,
+        powerPreference: 'default' as WebGLPowerPreference,
+        instancing: false,
+        vertexArrayObject: false,
+        drawBuffers: false,
+        shaderTextureLod: false,
+        fragDepth: false,
+        standardDerivatives: false,
+        textureFilterAnisotropic: false,
+        compressedTextureS3tc: false,
+        compressedTexturePvrtc: false,
+        compressedTextureEtc1: false,
+        compressedTextureAstc: false,
+      },
+      renderer: {
+        vendor: 'Unknown',
+        renderer: 'SSR Fallback',
+        version: 'N/A',
+        shadingLanguageVersion: 'N/A',
+        unmaskedVendor: 'Unknown',
+        unmaskedRenderer: 'SSR Fallback',
+      },
+      performance: {
+        mobile: false,
+        tier: 0,
+        score: 0,
+        fps: 0,
+        drawCalls: 0,
+        triangles: 0,
+      },
+      errors,
+    };
+  }
+
   private async performDetection(): Promise<WebGLCapabilities> {
+    // SSR safety check
+    if (typeof document === 'undefined' || typeof window === 'undefined') {
+      return this.createFallbackCapabilities(['SSR environment detected']);
+    }
+    
     const errors: string[] = [];
     
     try {

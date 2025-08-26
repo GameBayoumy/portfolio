@@ -43,6 +43,11 @@ export interface InteractiveGlobeProps {
 
 // Earth texture data URL (simple blue-green pattern for demo)
 const createEarthTexture = (): THREE.Texture => {
+  if (typeof document === 'undefined') {
+    // Return a minimal texture for SSR
+    return new THREE.Texture();
+  }
+  
   const canvas = document.createElement('canvas');
   canvas.width = 512;
   canvas.height = 256;
@@ -75,6 +80,11 @@ const createEarthTexture = (): THREE.Texture => {
 };
 
 const createNormalMap = (): THREE.Texture => {
+  if (typeof document === 'undefined') {
+    // Return a minimal texture for SSR
+    return new THREE.Texture();
+  }
+  
   const canvas = document.createElement('canvas');
   canvas.width = 512;
   canvas.height = 256;
@@ -306,14 +316,18 @@ export const InteractiveGlobe: React.FC<InteractiveGlobeProps> = ({
     setHovered(true);
     const point = event.point as THREE.Vector3;
     onGlobeHover?.(point);
-    document.body.style.cursor = 'pointer';
+    if (typeof document !== 'undefined') {
+      document.body.style.cursor = 'pointer';
+    }
   };
   
   const handlePointerOut = (event: any) => {
     event.stopPropagation();
     setHovered(false);
     onGlobeHover?.(null);
-    document.body.style.cursor = 'default';
+    if (typeof document !== 'undefined') {
+      document.body.style.cursor = 'default';
+    }
   };
   
   return (

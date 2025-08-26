@@ -6,8 +6,8 @@
 ```typescript
 interface TechnicalStack {
   core: {
-    framework: 'Next.js 14.2+';
-    typescript: '5.4+';
+    framework: 'Next.js 15.5+';
+    typescript: '5.9+';
     react: '18.3+';
   };
   
