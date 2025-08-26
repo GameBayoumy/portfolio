@@ -1,8 +1,10 @@
+---
 name: Feature Request
 about: Suggest a new feature or enhancement for the portfolio
 title: '[FEATURE] '
 labels: 'enhancement'
 assignees: ''
+---
 
 ## 🚀 Feature Request
 

@@ -1,8 +1,10 @@
+---
 name: Bug Report
 about: Create a report to help improve the portfolio
 title: '[BUG] '
 labels: 'bug'
 assignees: ''
+---
 
 ## 🐛 Bug Description
 
@@ -45,7 +47,7 @@ If applicable, add screenshots to help explain your problem.
 Add any other context about the problem here.
 
 ## 🚨 Error Messages
-## 🔎 Additional Context
+
 ```
 Paste any error messages or console output here
 ```
