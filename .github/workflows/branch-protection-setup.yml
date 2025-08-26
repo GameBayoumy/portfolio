@@ -30,6 +30,12 @@ on:
         default: true
         type: boolean
 
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/branch-protection-setup.yml
+
 permissions:
   actions: read
   contents: write
