@@ -26,6 +26,25 @@ env:
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
 jobs:
+  precheck:
+    name: Precheck
+    runs-on: ubuntu-latest
+    outputs:
+      has-secrets: ${{ steps.secrets.outputs.has_secrets }}
+    steps:
+      - name: Check Vercel secrets presence (no values logged)
+        id: secrets
+        shell: bash
+        run: |
+          HAS_TOKEN=false; HAS_ORG=false; HAS_PROJECT=false
+          [[ -n "${{ secrets.VERCEL_TOKEN }}" ]] && HAS_TOKEN=true
+          [[ -n "${{ secrets.VERCEL_ORG_ID }}" ]] && HAS_ORG=true
+          [[ -n "${{ secrets.VERCEL_PROJECT_ID }}" ]] && HAS_PROJECT=true
+          if [[ "$HAS_TOKEN" == true && "$HAS_ORG" == true && "$HAS_PROJECT" == true ]]; then
+            echo "has_secrets=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_secrets=false" >> "$GITHUB_OUTPUT"
+          fi
   build_and_test:
     name: Build & Test
     runs-on: ubuntu-latest
@@ -78,9 +97,9 @@ jobs:
 
   deploy_preview:
     name: Deploy Preview
-    needs: build_and_test
+    needs: [precheck, build_and_test]
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && secrets.VERCEL_TOKEN != '' && secrets.VERCEL_ORG_ID != '' && secrets.VERCEL_PROJECT_ID != ''
+    if: github.event_name == 'pull_request' && needs.precheck.outputs.has-secrets == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -123,9 +142,9 @@ jobs:
 
   deploy_preview_skipped:
     name: Deploy Preview (skipped)
-    needs: build_and_test
+    needs: [precheck, build_and_test]
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && (secrets.VERCEL_TOKEN == '' || secrets.VERCEL_ORG_ID == '' || secrets.VERCEL_PROJECT_ID == '')
+    if: github.event_name == 'pull_request' && needs.precheck.outputs.has-secrets != 'true'
     steps:
       - name: Skip notice
         run: |
@@ -133,9 +152,9 @@ jobs:
 
   deploy_production:
     name: Deploy Production
-    needs: build_and_test
+    needs: [precheck, build_and_test]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && secrets.VERCEL_TOKEN != '' && secrets.VERCEL_ORG_ID != '' && secrets.VERCEL_PROJECT_ID != ''
+    if: github.ref == 'refs/heads/main' && needs.precheck.outputs.has-secrets == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -165,9 +184,9 @@ jobs:
 
   deploy_production_skipped:
     name: Deploy Production (skipped)
-    needs: build_and_test
+    needs: [precheck, build_and_test]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && (secrets.VERCEL_TOKEN == '' || secrets.VERCEL_ORG_ID == '' || secrets.VERCEL_PROJECT_ID == '')
+    if: github.ref == 'refs/heads/main' && needs.precheck.outputs.has-secrets != 'true'
     steps:
       - name: Skip notice
         run: |
