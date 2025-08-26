@@ -335,7 +335,7 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: 📦 Install Vercel CLI
-    run: bun add -g vercel@latest
+        run: bun add -g vercel@latest
 
       - name: 🔗 Link to Vercel project
         run: |

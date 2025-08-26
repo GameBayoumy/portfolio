@@ -106,7 +106,7 @@ jobs:
             deps-${{ runner.os }}-${{ env.NODE_VERSION }}-
             deps-${{ runner.os }}-
 
-      - name: � Install dependencies (Bun)
+  - name: 📦 Install dependencies (Bun)
         id: bun-install
         continue-on-error: true
         run: |
@@ -172,18 +172,17 @@ jobs:
           key: ${{ needs.setup-validation.outputs.cache-key }}
           fail-on-cache-miss: true
 
-    - name: 🎨 Run ESLint
+      - name: 🎨 Run ESLint
         id: eslint
         continue-on-error: true
         run: |
-      if command -v bun &> /dev/null; then
+          if command -v bun &> /dev/null; then
             echo "🥟 Running ESLint with Bun..."
             bun run lint 2>&1 | tee eslint-output.txt || true
           else
             echo "📦 Running ESLint with NPM..."
             npm run lint 2>&1 | tee eslint-output.txt || true
           fi
-          
           if [[ ${PIPESTATUS[0]} -eq 0 ]]; then
             echo "✅ ESLint passed"
             echo "eslint-success=true" >> $GITHUB_OUTPUT
@@ -192,18 +191,17 @@ jobs:
             echo "eslint-success=false" >> $GITHUB_OUTPUT
           fi
 
-    - name: 💅 Check Prettier formatting
+      - name: 💅 Check Prettier formatting
         id: prettier
         continue-on-error: true
         run: |
-      if command -v bun &> /dev/null; then
+          if command -v bun &> /dev/null; then
             echo "🥟 Checking formatting with Bun..."
             bun run format:check 2>&1 | tee prettier-output.txt || true
           else
             echo "📦 Checking formatting with NPM..."
             npm run format:check 2>&1 | tee prettier-output.txt || true
           fi
-          
           if [[ ${PIPESTATUS[0]} -eq 0 ]]; then
             echo "✅ Prettier formatting is correct"
             echo "prettier-success=true" >> $GITHUB_OUTPUT
@@ -260,9 +258,9 @@ jobs:
           key: ${{ needs.setup-validation.outputs.cache-key }}
           fail-on-cache-miss: true
 
-    - name: � Run TypeScript type check
+      - name: 🔎 Run TypeScript type check
         run: |
-      if command -v bun &> /dev/null; then
+          if command -v bun &> /dev/null; then
             echo "🥟 Type checking with Bun..."
             bun run type-check
           else
@@ -387,9 +385,9 @@ jobs:
           key: ${{ needs.setup-validation.outputs.cache-key }}
           fail-on-cache-miss: true
 
-    - name: 🏗️ Build project
+      - name: 🏗️ Build project
         run: |
-      if command -v bun &> /dev/null; then
+          if command -v bun &> /dev/null; then
             echo "🥟 Building with Bun..."
             bun run ci:build
           else
