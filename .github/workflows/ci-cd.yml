@@ -66,7 +66,8 @@ jobs:
     name: Deploy Preview
     needs: build_and_test
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+  # Only attempt preview deploys when this is a PR and all required secrets are present
+  if: github.event_name == 'pull_request' && secrets.VERCEL_TOKEN != '' && secrets.VERCEL_ORG_ID != '' && secrets.VERCEL_PROJECT_ID != ''
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -111,7 +112,8 @@ jobs:
     name: Deploy Production
     needs: build_and_test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+  # Only deploy on main when all required secrets are present
+  if: github.ref == 'refs/heads/main' && secrets.VERCEL_TOKEN != '' && secrets.VERCEL_ORG_ID != '' && secrets.VERCEL_PROJECT_ID != ''
     steps:
       - name: Checkout
         uses: actions/checkout@v4
