@@ -4,9 +4,11 @@ import {
   PerformanceSettings,
   ResponsiveConfig,
   DeviceCapabilities,
-  AdaptiveQualitySettings,
-  MemoryManagementConfig
 } from '@/types/visualizer';
+import {
+  AdaptiveQualitySettings,
+  MemoryManagementConfig,
+} from '../types/performance';
 import { 
   PERFORMANCE_PRESETS,
   PERFORMANCE_THRESHOLDS,
@@ -620,7 +622,7 @@ export class MemoryManager {
     setInterval(() => {
       const usage = this.getMemoryUsage();
       
-      if (usage > this.config.disposeThreshold) {
+  if (usage > this.config.gcThreshold) {
         this.forceGarbageCollection();
       }
     }, this.config.gcInterval);

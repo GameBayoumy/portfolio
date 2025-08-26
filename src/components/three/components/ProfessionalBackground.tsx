@@ -15,7 +15,7 @@ import { AdaptiveBackgroundSystem } from '../systems/AdaptiveBackgroundSystem'
 import { ShaderMaterialManager } from '../managers/ShaderMaterialManager'
 import type { ProfessionalPresets, QualityConfigs } from '../shaders/ImprovedBackgroundShader'
 import { ThreeErrorBoundary } from '../providers/ErrorBoundary'
-import { WebGLContextRecovery } from '../providers/WebGLContextRecovery'
+import { WebGLContextRecoveryProvider, useWebGLContextRecovery } from '../providers/WebGLContextRecovery'
 
 // Component props interface
 interface ProfessionalBackgroundProps {
@@ -313,15 +313,15 @@ export function ProfessionalBackground({
       animate={{ opacity: 1 }}
       transition={{ duration: 2, ease: 'easeOut' }}
     >
-      <WebGLContextRecovery onRecover={handleRetry}>
+      <WebGLContextRecoveryProvider>
         <ThreeErrorBoundary
-          fallback={
+          fallbackComponent={() => (
             <ErrorFallback
               className="absolute inset-0"
               onRetry={handleRetry}
             />
-          }
-          onError={handleError}
+          )}
+          onError={(error) => handleError(error as any)}
         >
           <Canvas
             ref={canvasRef}
@@ -342,7 +342,7 @@ export function ProfessionalBackground({
             </Suspense>
           </Canvas>
         </ThreeErrorBoundary>
-      </WebGLContextRecovery>
+      </WebGLContextRecoveryProvider>
       
       {/* Debug overlay */}
       <AnimatePresence>

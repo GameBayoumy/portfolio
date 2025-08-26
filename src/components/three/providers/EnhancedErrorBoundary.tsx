@@ -304,7 +304,7 @@ export class EnhancedErrorBoundary extends Component<EnhancedErrorBoundaryProps,
     
     // Add component context
     enhancedError.context.component = this.props.componentName;
-    enhancedError.context.stackTrace = errorInfo.componentStack;
+  enhancedError.context.stackTrace = errorInfo.componentStack || undefined;
     enhancedError.context.sessionId = this.props.sessionId;
     enhancedError.context.retryCount = this.state.retryCount;
     
@@ -535,8 +535,8 @@ export class EnhancedErrorBoundary extends Component<EnhancedErrorBoundaryProps,
 
   render() {
     if (this.state.hasError && this.state.error) {
-      const FallbackComponent = this.props.fallbackComponent || this.getDefaultFallbackComponent();
-      const canRetry = this.props.enableRetry && 
+  const FallbackComponent = (this.props.fallbackComponent || this.getDefaultFallbackComponent());
+  const canRetry = Boolean(this.props.enableRetry) && 
                       this.state.error.recoverable && 
                       this.state.retryCount < (this.props.maxRetries || 3) &&
                       !this.state.contextLost;

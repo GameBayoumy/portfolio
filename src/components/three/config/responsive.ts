@@ -464,7 +464,7 @@ export class ResponsiveConfigUtils {
     }
   }
 
-  static mergeResponsiveConfigs<T>(
+  static mergeResponsiveConfigs<T extends Record<string, any>>(
     base: ResponsiveConfig<T>,
     override: ResponsiveConfig<Partial<T>>
   ): ResponsiveConfig<T> {
@@ -472,8 +472,8 @@ export class ResponsiveConfigUtils {
       mobile: { ...base.mobile, ...override.mobile },
       tablet: { ...base.tablet, ...override.tablet },
       desktop: { ...base.desktop, ...override.desktop },
-      ultrawide: base.ultrawide || override.ultrawide 
-        ? { ...base.ultrawide, ...override.ultrawide }
+      ultrawide: (base.ultrawide || override.ultrawide)
+        ? ({ ...(base.ultrawide as T || {}), ...(override.ultrawide as Partial<T> || {}) } as T)
         : undefined,
     };
   }

@@ -67,9 +67,9 @@ class WebGLContextRecoveryManager {
       recoveryDelay: 1000,
       preventDrawingBufferPreservation: true,
       enableAutomaticRecovery: true,
-      onContextLost: undefined,
-      onContextRestored: undefined,
-      onRecoveryFailed: undefined,
+  onContextLost: () => {},
+  onContextRestored: () => {},
+  onRecoveryFailed: () => {},
     };
 
     this.state = {
@@ -84,7 +84,7 @@ class WebGLContextRecoveryManager {
       preventDrawingBuffer: this.config.preventDrawingBufferPreservation,
     };
 
-    this.callbacks = {};
+  this.callbacks = {};
   }
 
   configure(config: WebGLContextRecoveryConfig): void {

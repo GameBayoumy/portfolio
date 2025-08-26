@@ -178,8 +178,8 @@ export function AdaptiveBackgroundSystem({
   const { size, viewport } = useThree()
   
   // System references
-  const timingSystemRef = useRef<AnimationTimingSystem>()
-  const performanceMonitorRef = useRef<BackgroundPerformanceMonitor>()
+  const timingSystemRef = useRef<AnimationTimingSystem | null>(null)
+  const performanceMonitorRef = useRef<BackgroundPerformanceMonitor | null>(null)
   const interactionStateRef = useRef({ mouseX: 0, mouseY: 0, isActive: false })
   
   // State management
@@ -234,7 +234,9 @@ export function AdaptiveBackgroundSystem({
     
     // Add performance callback
     if (onPerformanceChange) {
-      performanceMonitorRef.current.addPerformanceCallback(onPerformanceChange)
+      performanceMonitorRef.current.addPerformanceCallback((fps: number, frameTime: number) => {
+        onPerformanceChange(fps, currentQuality)
+      })
     }
   }, [forceQuality, animationPreset, onPerformanceChange])
   

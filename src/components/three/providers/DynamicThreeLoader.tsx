@@ -1,7 +1,7 @@
 'use client';
 
 import React, { lazy, Suspense, useState, useEffect, ReactNode, ComponentType } from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
+import EnhancedErrorBoundary from './EnhancedErrorBoundary';
 import { useWebGLCapabilities } from './WebGLCapabilityDetector';
 
 // Types
@@ -218,16 +218,18 @@ export const DynamicThreeLoader: React.FC<DynamicThreeLoaderProps> = ({
   if (Component) {
     return (
       <div className={className}>
-        <ErrorBoundary
-          fallback={<ErrorComponent error={new Error('Component crashed')} retry={retry} />}
-          onError={(error) => {
-            console.error('Dynamic Three component error:', error);
-          }}
+        <EnhancedErrorBoundary
+          fallbackComponent={({ error, retry: rbRetry }) => (
+            <ErrorComponent error={error as unknown as Error} retry={retry} />
+          )}
+          enableRetry
+          maxRetries={3}
+          onError={(err) => console.error('Dynamic Three component error:', err)}
         >
           <Suspense fallback={<LoadingComponent />}>
             <Component {...componentProps} />
           </Suspense>
-        </ErrorBoundary>
+        </EnhancedErrorBoundary>
       </div>
     );
   }
@@ -263,31 +265,33 @@ export const createDynamicThreeComponent = <P extends Record<string, any>>(
 };
 
 // Pre-configured dynamic loaders for common patterns
-export const DynamicBasicThree = createDynamicThreeComponent(
-  () => import('../visualizers/BasicThreeComponent'),
-  {
-    webglRequired: true,
-    webgl2Preferred: false,
-    minGPUTier: 'low',
-  }
-);
-
-export const DynamicAdvancedThree = createDynamicThreeComponent(
-  () => import('../visualizers/AdvancedThreeComponent'),
-  {
-    webglRequired: true,
-    webgl2Preferred: true,
-    minGPUTier: 'medium',
-  }
-);
-
-export const DynamicHighEndThree = createDynamicThreeComponent(
-  () => import('../visualizers/HighEndThreeComponent'),
-  {
-    webglRequired: true,
-    webgl2Preferred: true,
-    minGPUTier: 'high',
-  }
-);
+// Note: Example pre-configured components disabled due to missing visualizer files.
+// Uncomment and ensure the target modules exist before using.
+// export const DynamicBasicThree = createDynamicThreeComponent(
+//   () => import('../visualizers/BasicThreeComponent'),
+//   {
+//     webglRequired: true,
+//     webgl2Preferred: false,
+//     minGPUTier: 'low',
+//   }
+// );
+// 
+// export const DynamicAdvancedThree = createDynamicThreeComponent(
+//   () => import('../visualizers/AdvancedThreeComponent'),
+//   {
+//     webglRequired: true,
+//     webgl2Preferred: true,
+//     minGPUTier: 'medium',
+//   }
+// );
+// 
+// export const DynamicHighEndThree = createDynamicThreeComponent(
+//   () => import('../visualizers/HighEndThreeComponent'),
+//   {
+//     webglRequired: true,
+//     webgl2Preferred: true,
+//     minGPUTier: 'high',
+//   }
+// );
 
 export default DynamicThreeLoader;

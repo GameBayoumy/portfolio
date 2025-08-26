@@ -479,7 +479,7 @@ export class AdaptivePerformanceManager {
     return {
       profile: this.profiler['profile'],
       currentSettings: this.currentSettings,
-      averageMetrics,
+      averageMetrics: avgMetrics,
       recommendations
     };
   }
