@@ -1,0 +1,22 @@
+# Ignore generated and non-source docs from Prettier checks
+.next/
+node_modules/
+coverage/
+*.tsbuildinfo
+
+# Large documentation and AI-generated folders
+.claude/
+.claude-flow/
+.roo/
+docs/
+memory/
+
+# Known non-standard script files used as CLI tools
+scripts/security-headers-test.js
+scripts/vercel-env-sync.js
+
+# Test setup that uses JSX in plain JS and may not parse under Prettier
+jest.setup.js
+
+# Deployment reports
+deployment-report-*.md

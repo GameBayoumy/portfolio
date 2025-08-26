@@ -54,7 +54,7 @@ jobs:
       - name: 📋 Check for lockfile
         id: check-lockfile
         run: |
-          if [[ -f "bun.lockb" ]]; then
+          if [[ -f "bun.lock" || -f "bun.lockb" ]]; then
             echo "has-lockfile=true" >> $GITHUB_OUTPUT
             echo "✅ Bun lockfile found"
           elif [[ -f "package-lock.json" ]]; then
@@ -68,7 +68,7 @@ jobs:
       - name: 🔑 Generate cache keys
         id: cache-keys
         run: |
-          PACKAGE_HASH="${{ hashFiles('package.json', 'bun.lockb', 'package-lock.json') }}"
+          PACKAGE_HASH="${{ hashFiles('package.json', 'bun.lock', 'bun.lockb', 'package-lock.json') }}"
           echo "cache-key=deps-${{ runner.os }}-${{ env.NODE_VERSION }}-${{ env.BUN_VERSION }}-${PACKAGE_HASH}" >> $GITHUB_OUTPUT
 
   # Job 2: Dependency installation with fallback
@@ -106,13 +106,18 @@ jobs:
             deps-${{ runner.os }}-${{ env.NODE_VERSION }}-
             deps-${{ runner.os }}-
 
-      - name: 📥 Install dependencies (Bun)
+      - name: � Install dependencies (Bun)
         id: bun-install
         continue-on-error: true
         run: |
           echo "🥟 Attempting Bun install..."
           if [[ "${{ needs.setup-validation.outputs.has-lockfile }}" == "true" ]]; then
-            bun install --frozen-lockfile --no-progress
+            if [[ -f "bun.lock" || -f "bun.lockb" ]]; then
+              bun install --frozen-lockfile --no-progress
+            else
+              echo "⚠️ Using npm lockfile; Bun will still install packages"
+              bun install --no-progress
+            fi
           else
             echo "⚠️ No lockfile found, installing without frozen flag"
             bun install --no-progress
@@ -167,11 +172,11 @@ jobs:
           key: ${{ needs.setup-validation.outputs.cache-key }}
           fail-on-cache-miss: true
 
-      - name: 🎨 Run ESLint
+    - name: 🎨 Run ESLint
         id: eslint
         continue-on-error: true
         run: |
-          if command -v bun &> /dev/null && npm run lint --silent 2>/dev/null | grep -q "bun"; then
+      if command -v bun &> /dev/null; then
             echo "🥟 Running ESLint with Bun..."
             bun run lint 2>&1 | tee eslint-output.txt || true
           else
@@ -187,11 +192,11 @@ jobs:
             echo "eslint-success=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: 💅 Check Prettier formatting
+    - name: 💅 Check Prettier formatting
         id: prettier
         continue-on-error: true
         run: |
-          if command -v bun &> /dev/null && npm run format:check --silent 2>/dev/null | grep -q "bun"; then
+      if command -v bun &> /dev/null; then
             echo "🥟 Checking formatting with Bun..."
             bun run format:check 2>&1 | tee prettier-output.txt || true
           else
@@ -255,9 +260,9 @@ jobs:
           key: ${{ needs.setup-validation.outputs.cache-key }}
           fail-on-cache-miss: true
 
-      - name: 🔍 Run TypeScript type check
+    - name: � Run TypeScript type check
         run: |
-          if command -v bun &> /dev/null && npm run type-check --silent 2>/dev/null | grep -q "bun"; then
+      if command -v bun &> /dev/null; then
             echo "🥟 Type checking with Bun..."
             bun run type-check
           else
@@ -382,9 +387,9 @@ jobs:
           key: ${{ needs.setup-validation.outputs.cache-key }}
           fail-on-cache-miss: true
 
-      - name: 🏗️ Build project
+    - name: 🏗️ Build project
         run: |
-          if command -v bun &> /dev/null && npm run build --silent 2>/dev/null | grep -q "bun"; then
+      if command -v bun &> /dev/null; then
             echo "🥟 Building with Bun..."
             bun run ci:build
           else

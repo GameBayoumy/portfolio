@@ -127,7 +127,7 @@ jobs:
       - name: 🔑 Setup cache keys
         id: cache-setup
         run: |
-          PACKAGE_HASH="${{ hashFiles('package.json', 'bun.lockb', 'package-lock.json') }}"
+            PACKAGE_HASH="${{ hashFiles('package.json', 'bun.lock', 'bun.lockb', 'package-lock.json') }}"
           CACHE_KEY="deployment-deps-${{ runner.os }}-${{ env.NODE_VERSION }}-${{ env.BUN_VERSION }}-${PACKAGE_HASH}"
           echo "cache-key=$CACHE_KEY" >> $GITHUB_OUTPUT
           echo "🔑 Cache key: $CACHE_KEY"
@@ -171,7 +171,7 @@ jobs:
       - name: 📥 Install dependencies
         run: |
           echo "📥 Installing dependencies with Bun..."
-          if [[ -f "bun.lockb" ]]; then
+            if [[ -f "bun.lock" || -f "bun.lockb" ]]; then
             bun install --frozen-lockfile --no-progress
           else
             echo "⚠️ No Bun lockfile found, installing without frozen flag"
@@ -335,7 +335,7 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: 📦 Install Vercel CLI
-        run: bun install -g vercel@latest
+    run: bun add -g vercel@latest
 
       - name: 🔗 Link to Vercel project
         run: |

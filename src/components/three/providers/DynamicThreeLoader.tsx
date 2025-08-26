@@ -115,11 +115,11 @@ const useDynamicThreeLoader = (
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      const module = await importFn();
+      const mod = await importFn();
       setState(prev => ({ 
         ...prev, 
         loading: false, 
-        component: module.default,
+        component: mod.default,
         error: null 
       }));
     } catch (error) {
