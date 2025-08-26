@@ -106,7 +106,7 @@ jobs:
             deps-${{ runner.os }}-${{ env.NODE_VERSION }}-
             deps-${{ runner.os }}-
 
-  - name: 📦 Install dependencies (Bun)
+      - name: 📦 Install dependencies (Bun)
         id: bun-install
         continue-on-error: true
         run: |
