@@ -114,7 +114,7 @@ jobs:
     if: github.event.inputs.check_type == 'performance' || github.event.inputs.check_type == 'full'
     steps:
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '22.x'
       - name: Quick metrics
