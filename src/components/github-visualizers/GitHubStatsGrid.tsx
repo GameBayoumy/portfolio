@@ -104,31 +104,35 @@ export function GitHubStatsGrid({ stats }: GitHubStatsGridProps) {
         </div>
 
         {/* Profile Details */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
           {profileData.map((item, index) => {
             const IconComponent = item.icon;
-            const content = (
-              <div className="flex items-center gap-2 text-sm">
-                <IconComponent className="w-4 h-4 text-gray-400" />
-                <span className="text-gray-300">{item.label}:</span>
-                <span className="text-white font-medium">{item.value}</span>
-              </div>
+            const valueClasses =
+              'block text-sm text-white font-medium leading-snug break-words';
+            const valueContent = item.link ? (
+              <a
+                href={item.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${valueClasses} hover:text-neon-blue transition-colors`}
+              >
+                {item.value}
+              </a>
+            ) : (
+              <span className={valueClasses}>{item.value}</span>
             );
 
             return (
-              <div key={index}>
-                {item.link ? (
-                  <a
-                    href={item.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-neon-blue transition-colors"
-                  >
-                    {content}
-                  </a>
-                ) : (
-                  content
-                )}
+              <div key={index} className="flex items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-800/60 text-gray-300">
+                  <IconComponent className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 space-y-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                    {item.label}
+                  </span>
+                  {valueContent}
+                </div>
               </div>
             );
           })}
