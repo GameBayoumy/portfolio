@@ -4,6 +4,7 @@ import React, { useRef, useMemo, useCallback, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { AdditiveBlending } from 'three';
+import type { Color, Vector3 } from 'three';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GitHubRepository } from '@/types/github';
 import * as THREE from 'three';
@@ -11,14 +12,13 @@ import * as THREE from 'three';
 interface NetworkNodeProps {
   repository: GitHubRepository & {
     position: Vector3;
+    renderPosition: Vector3;
     targetPosition: Vector3;
     color: Color;
     radius: number;
     velocity: Vector3;
     force: Vector3;
     mass: number;
-    isHovered: boolean;
-    isSelected: boolean;
     connections: string[];
   };
   isSelected: boolean;
@@ -49,15 +49,13 @@ const NetworkNode: React.FC<NetworkNodeProps> = ({
 
   // Memoized materials for performance
   const materials = useMemo(() => {
-    const mainMaterial = new THREE.MeshPhysicalMaterial({
+    const mainMaterial = new THREE.MeshStandardMaterial({
       color: repository.color,
-      roughness: 0.1,
-      metalness: 0.8,
+      metalness: 0.3,
+      roughness: 0.4,
+      emissive: repository.color.clone().multiplyScalar(0.1),
       transparent: true,
-      opacity: 0.9,
-      clearcoat: 1,
-      clearcoatRoughness: 0.1,
-      envMapIntensity: 1
+      opacity: 0.9
     });
 
     const glowMaterial = new THREE.MeshBasicMaterial({
@@ -90,16 +88,15 @@ const NetworkNode: React.FC<NetworkNodeProps> = ({
   const handleClick = useCallback((e: any) => {
     e?.stopPropagation?.();
     onClick(repository);
-  }, [repository, onClick]);
+  }, [onClick, repository]);
 
   const handlePointerOver = useCallback((e: any) => {
     e?.stopPropagation?.();
-    document.body.style.cursor = 'pointer';
     onHover(repository);
-  }, [repository, onHover]);
+  }, [onHover, repository]);
 
-  const handlePointerLeave = useCallback(() => {
-    document.body.style.cursor = 'default';
+  const handlePointerLeave = useCallback((e: any) => {
+    e?.stopPropagation?.();
     onPointerOut();
   }, [onPointerOut]);
 
@@ -113,6 +110,7 @@ const NetworkNode: React.FC<NetworkNodeProps> = ({
     tempVector.copy(repository.position);
     tempVector.y += floatOffset;
     groupRef.current.position.lerp(tempVector, 0.12);
+    repository.renderPosition.copy(groupRef.current.position);
 
     // Dynamic scaling based on interaction state
     let targetScale = 1;

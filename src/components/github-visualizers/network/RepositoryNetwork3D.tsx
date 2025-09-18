@@ -44,6 +44,7 @@ const particleFragmentShader = `
 
 interface Repository3D extends GitHubRepository {
   position: Vector3;
+  renderPosition: Vector3;
   targetPosition: Vector3;
   connections: string[];
   color: Color;
@@ -422,6 +423,7 @@ export default function RepositoryNetwork3D({ repositories, className = '' }: Re
       return {
         ...repo,
         position: initialPosition,
+        renderPosition: initialPosition.clone(),
         targetPosition: layoutPosition.clone(),
         connections: [],
         color,
