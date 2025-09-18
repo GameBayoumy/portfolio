@@ -19,6 +19,7 @@ class VercelEnvSync {
       'SENTRY_ORG',
       'SENTRY_PROJECT',
       'CONTACT_EMAIL',
+      'RESEND_API_KEY',
       'GITHUB_URL',
       'LINKEDIN_URL'
     ];
@@ -28,7 +29,9 @@ class VercelEnvSync {
       'SLACK_WEBHOOK_URL',
       'DISCORD_WEBHOOK_URL',
       'DATADOG_API_KEY',
-      'DEPLOYMENT_WEBHOOK_URL'
+      'DEPLOYMENT_WEBHOOK_URL',
+      'RESEND_FROM_EMAIL',
+      'RESEND_TO_EMAIL'
     ];
   }
 

@@ -40,6 +40,7 @@
 - [ ] `SENTRY_ORG` - Sentry organization
 - [ ] `SENTRY_PROJECT` - Sentry project name
 - [ ] `CONTACT_EMAIL` - Contact email address
+- [ ] `RESEND_API_KEY` - Resend API key for contact form
 - [ ] `GITHUB_URL` - GitHub profile URL
 - [ ] `LINKEDIN_URL` - LinkedIn profile URL
 
@@ -48,6 +49,8 @@
 - [ ] `LIGHTHOUSE_TOKEN` - Performance monitoring
 - [ ] `SLACK_WEBHOOK_URL` - Deployment notifications
 - [ ] `DATADOG_API_KEY` - Custom metrics
+- [ ] `RESEND_FROM_EMAIL` - Custom verified sender address
+- [ ] `RESEND_TO_EMAIL` - Override contact form recipient
 
 ### Domain & SSL
 - [ ] Custom domain configured (if applicable)
