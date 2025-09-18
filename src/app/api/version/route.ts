@@ -6,7 +6,7 @@ import path from 'path';
  * API Route: /api/version
  * Returns current version information
  */
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<Response> {
   try {
     // Read version info from config
     const versionPath = path.join(process.cwd(), 'src/config/version.json');
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
  * API Route: /api/version (HEAD)
  * Returns version headers without body
  */
-export async function HEAD(request: NextRequest) {
+export async function HEAD(request: NextRequest): Promise<Response> {
   try {
     const versionPath = path.join(process.cwd(), 'src/config/version.json');
     const versionData = fs.readFileSync(versionPath, 'utf8');

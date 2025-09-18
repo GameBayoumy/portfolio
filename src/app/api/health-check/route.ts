@@ -27,7 +27,7 @@ interface HealthStatus {
   };
 }
 
-export async function GET(request: NextRequest): Promise<NextResponse<HealthStatus>> {
+export async function GET(request: NextRequest): Promise<Response> {
   const startTime = Date.now();
   
   try {

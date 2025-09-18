@@ -42,6 +42,7 @@ interface ThreeVisualizersSectionProps {
 }
 
 interface VisualizerCardProps {
+  key?: React.Key;
   config: VisualizerConfig;
   isActive: boolean;
   onActivate: (id: string) => void;

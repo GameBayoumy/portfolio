@@ -24,7 +24,7 @@ interface WebAppManifest {
   dir: string;
 }
 
-export async function GET(request: NextRequest): Promise<NextResponse<WebAppManifest>> {
+export async function GET(request: NextRequest): Promise<Response> {
   const manifest: WebAppManifest = {
     name: 'Sharif Bayoumy - XR Developer Portfolio',
     short_name: 'Sharif Portfolio',

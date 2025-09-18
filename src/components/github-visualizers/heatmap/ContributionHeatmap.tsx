@@ -72,7 +72,7 @@ export default function ContributionHeatmap() {
   const availableYears = useMemo(() => {
     const currentYear = new Date().getFullYear()
     const startYear = 2020 // Assume GitHub activity started in 2020
-    const years = []
+    const years: number[] = []
     for (let year = currentYear; year >= startYear; year--) {
       years.push(year)
     }
@@ -217,7 +217,7 @@ export default function ContributionHeatmap() {
       transition={{ duration: 0.8 }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
         <div className="flex items-center gap-3">
           <Calendar className="w-6 h-6 text-neon-green" />
           <div>
@@ -227,19 +227,21 @@ export default function ContributionHeatmap() {
         </div>
 
         {/* Year Navigation */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full justify-center sm:w-auto sm:justify-end">
           <button
             onClick={() => setSelectedYear(Math.min(selectedYear + 1, availableYears[0]))}
             disabled={selectedYear >= availableYears[0]}
-            className="p-2 rounded-lg bg-glass-100 hover:bg-glass-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2 rounded-lg bg-glass-100 hover:bg-glass-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+            aria-label="View newer contributions"
           >
             <ChevronLeft className="w-4 h-4 text-gray-400" />
           </button>
-          
+
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-            className="bg-glass-100 text-white px-3 py-2 rounded-lg text-sm font-medium"
+            className="bg-glass-100 text-white px-3 py-2 rounded-lg text-sm font-medium w-full sm:w-auto min-w-[5rem] text-center sm:text-left"
+            aria-label="Select contribution year"
           >
             {availableYears.map(year => (
               <option key={year} value={year} className="bg-slate-800">
@@ -247,11 +249,12 @@ export default function ContributionHeatmap() {
               </option>
             ))}
           </select>
-          
+
           <button
             onClick={() => setSelectedYear(Math.max(selectedYear - 1, availableYears[availableYears.length - 1]))}
             disabled={selectedYear <= availableYears[availableYears.length - 1]}
-            className="p-2 rounded-lg bg-glass-100 hover:bg-glass-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2 rounded-lg bg-glass-100 hover:bg-glass-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+            aria-label="View older contributions"
           >
             <ChevronRight className="w-4 h-4 text-gray-400" />
           </button>

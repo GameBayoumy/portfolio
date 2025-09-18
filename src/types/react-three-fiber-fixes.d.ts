@@ -74,7 +74,7 @@ declare module '@react-three/fiber' {
     [key: string]: any
   }
 
-  export const Canvas: React.ForwardRefExoticComponent<CanvasProps & React.RefAttributes<HTMLCanvasElement>>
+  export const Canvas: React.FunctionComponent<CanvasProps & { ref?: any }>
   
   export function extend(objects: { [key: string]: any }): void
 

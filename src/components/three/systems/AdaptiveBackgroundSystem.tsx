@@ -373,7 +373,12 @@ export function AdaptiveBackgroundSystem({
   
   // Generate layer configurations for depth
   const layerConfigs = useMemo(() => {
-    const configs = []
+    const configs: Array<{
+      position: [number, number, number]
+      scale: number
+      opacity: number
+      rotation: [number, number, number]
+    }> = []
     for (let i = 0; i < layers; i++) {
       const depth = -5 - i * 2 // Spread layers in depth
       const scale = 1.0 + i * 0.3 // Increase scale for background layers
