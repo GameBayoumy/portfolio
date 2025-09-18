@@ -1,10 +1,9 @@
 'use client'
 
-import { useEffect, useRef, useMemo, Suspense } from 'react'
+import { useEffect, useRef, useMemo, useState, Suspense } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Sphere, Line, Text, Html } from '@react-three/drei'
 import { motion } from 'framer-motion'
-import { useQuery } from '@tanstack/react-query'
 import { gitHubApi } from '@/services/github-api'
 import { RepositoryNode, RepositoryConnection, RepositoryNetwork as NetworkType } from '@/types/github'
 import * as THREE from 'three'
@@ -57,19 +56,72 @@ function NetworkSkeleton() {
   )
 }
 
+const NETWORK_CACHE_TTL = 15 * 60 * 1000 // 15 minutes
+
 export default function RepositoryNetwork() {
   const { ref, inView } = useInView({
     threshold: 0.1,
     triggerOnce: true
   })
+  const [network, setNetwork] = useState<NetworkType | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const networkCache = useRef<{ data: NetworkType; timestamp: number } | null>(null)
 
-  const { data: network, isLoading, error } = useQuery({
-    queryKey: ['github', 'repository-network'],
-    queryFn: () => gitHubApi.getRepositoryNetwork(),
-    enabled: inView,
-    staleTime: 15 * 60 * 1000, // 15 minutes
-    retry: 2
-  })
+  useEffect(() => {
+    if (!inView) {
+      return
+    }
+
+    let isActive = true
+    const cacheEntry = networkCache.current
+    const isCacheFresh = cacheEntry ? Date.now() - cacheEntry.timestamp < NETWORK_CACHE_TTL : false
+
+    if (cacheEntry) {
+      setNetwork(cacheEntry.data)
+      setError(null)
+
+      if (isCacheFresh) {
+        setIsLoading(false)
+        return () => {
+          isActive = false
+        }
+      }
+    } else {
+      setNetwork(null)
+    }
+
+    setIsLoading(!cacheEntry)
+    setError(null)
+
+    gitHubApi
+      .getRepositoryNetwork()
+      .then(result => {
+        if (!isActive) return
+
+        networkCache.current = { data: result, timestamp: Date.now() }
+        setNetwork(result)
+        setError(null)
+      })
+      .catch(err => {
+        if (!isActive) return
+
+        console.error('Failed to fetch repository network:', err)
+
+        if (!cacheEntry) {
+          setError(err instanceof Error ? err.message : 'Failed to load repository network')
+          setNetwork(null)
+        }
+      })
+      .finally(() => {
+        if (!isActive) return
+        setIsLoading(false)
+      })
+
+    return () => {
+      isActive = false
+    }
+  }, [inView])
 
   const selectedNode = useRef<RepositoryNode | null>(null)
 
@@ -95,9 +147,9 @@ export default function RepositoryNetwork() {
     selectedNode.current = selectedNode.current?.id === node.id ? null : node
   }
 
-  if (error) {
+  if (error && !initializedNetwork) {
     return (
-      <motion.div 
+      <motion.div
         ref={ref}
         className="glass-morphism p-8 rounded-xl"
         initial={{ opacity: 0, y: 20 }}
@@ -115,7 +167,7 @@ export default function RepositoryNetwork() {
 
   if (isLoading || !initializedNetwork) {
     return (
-      <motion.div 
+      <motion.div
         ref={ref}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

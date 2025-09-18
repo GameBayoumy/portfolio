@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useMemo } from 'react'
+import { useEffect, useRef, useMemo, useState } from 'react'
 import * as d3 from 'd3'
 import { ContributionDay } from '@/types/github'
 
@@ -13,17 +13,31 @@ interface HeatmapGridProps {
 
 export function HeatmapGrid({ data, year, onDayHover, onDayClick }: HeatmapGridProps) {
   const svgRef = useRef<SVGSVGElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const updateIsMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+
+    updateIsMobile()
+    window.addEventListener('resize', updateIsMobile)
+
+    return () => window.removeEventListener('resize', updateIsMobile)
+  }, [])
 
   const dimensions = useMemo(() => {
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
-    const cellSize = isMobile ? 10 : 12
+    const cellSize = isMobile ? 9 : 12
     const cellGap = isMobile ? 1 : 2
-    const padding = { top: 40, right: 20, bottom: 20, left: 40 }
-    
+    const padding = isMobile
+      ? { top: 28, right: 16, bottom: 20, left: 32 }
+      : { top: 40, right: 20, bottom: 24, left: 40 }
+
     const gridWidth = 53 * (cellSize + cellGap) - cellGap
     const gridHeight = 7 * (cellSize + cellGap) - cellGap
-    
+
     return {
       cellSize,
       cellGap,
@@ -31,9 +45,11 @@ export function HeatmapGrid({ data, year, onDayHover, onDayClick }: HeatmapGridP
       gridWidth,
       gridHeight,
       totalWidth: gridWidth + padding.left + padding.right,
-      totalHeight: gridHeight + padding.top + padding.bottom
+      totalHeight: gridHeight + padding.top + padding.bottom,
+      monthLabelFontSize: isMobile ? 9 : 11,
+      dayLabelFontSize: isMobile ? 9 : 10
     }
-  }, [])
+  }, [isMobile])
 
   const colorScale = useMemo(() => {
     const colors = ['#161b22', '#0e4429', '#006d32', '#26a641', '#39d353']
@@ -48,7 +64,15 @@ export function HeatmapGrid({ data, year, onDayHover, onDayClick }: HeatmapGridP
     const svg = d3.select(svgRef.current)
     svg.selectAll('*').remove()
 
-    const { cellSize, cellGap, padding, totalWidth, totalHeight } = dimensions
+    const {
+      cellSize,
+      cellGap,
+      padding,
+      totalWidth,
+      totalHeight,
+      monthLabelFontSize,
+      dayLabelFontSize
+    } = dimensions
 
     svg
       .attr('width', totalWidth)
@@ -77,7 +101,7 @@ export function HeatmapGrid({ data, year, onDayHover, onDayClick }: HeatmapGridP
           .append('text')
           .attr('x', weekIndex * (cellSize + cellGap))
           .attr('y', -10)
-          .attr('font-size', '11px')
+          .attr('font-size', `${monthLabelFontSize}px`)
           .attr('fill', '#7d8590')
           .attr('font-family', 'system-ui, -apple-system, sans-serif')
           .attr('font-weight', '500')
@@ -97,7 +121,7 @@ export function HeatmapGrid({ data, year, onDayHover, onDayClick }: HeatmapGridP
           .append('text')
           .attr('x', -8)
           .attr('y', i * (cellSize + cellGap) + cellSize / 2)
-          .attr('font-size', '10px')
+          .attr('font-size', `${dayLabelFontSize}px`)
           .attr('fill', '#7d8590')
           .attr('font-family', 'system-ui, -apple-system, sans-serif')
           .attr('dominant-baseline', 'middle')
@@ -219,7 +243,7 @@ export function HeatmapGrid({ data, year, onDayHover, onDayClick }: HeatmapGridP
   }, [data, year, dimensions, colorScale, onDayHover, onDayClick])
 
   return (
-    <div ref={containerRef} className="w-full">
+    <div className="w-full">
       <svg 
         ref={svgRef} 
         className="w-full h-auto"
