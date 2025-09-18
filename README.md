@@ -96,6 +96,10 @@ npm run type-check
 npm run analyze
 ```
 
+> **Offline-friendly tooling:** In environments without npm registry access the `lint` and `type-check` scripts fall back to
+> project-local checks that focus on the contact form implementation. This keeps the core contact flow verifiable without
+> needing to download the full toolchain.
+
 ## 🎨 Project Structure
 
 ```
@@ -209,7 +213,14 @@ npm run build
 CONTACT_EMAIL=your@email.com
 GITHUB_URL=https://github.com/yourusername
 LINKEDIN_URL=https://linkedin.com/in/yourprofile
+RESEND_API_KEY=your_resend_api_key
+RESEND_FROM_EMAIL="Sharif Bayoumy <contact@yourdomain.com>"
+RESEND_TO_EMAIL=contact@yourdomain.com
 ```
+
+- `RESEND_API_KEY` is required for the contact form and should be generated from your Resend dashboard.
+- `RESEND_FROM_EMAIL` (optional) must use a verified sender on your Resend domain. If omitted, the app falls back to `Sharif Bayoumy <CONTACT_EMAIL>`.
+- `RESEND_TO_EMAIL` (optional) lets you route contact form messages to a different inbox; it defaults to `CONTACT_EMAIL`.
 
 ### Performance Tuning
 Adjust quality settings in `src/lib/utils.ts`:
