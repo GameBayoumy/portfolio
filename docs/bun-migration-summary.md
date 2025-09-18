@@ -18,7 +18,7 @@ Your portfolio project has been successfully migrated from npm to Bun package ma
 
 ### 3. **Package.json Scripts Updated**
 Updated the following scripts to use Bun:
-- `ci:install` → `bun install --frozen-lockfile`
+- `ci:install` → `bun install`
 - `ci:build` → `bun run lint && bun run type-check && bun run build`
 - `ci:test` → `bun run lint && bun run type-check && bun run format:check`
 - `security:audit` → `bun audit`
@@ -100,7 +100,7 @@ The migration verification script confirms:
 
 3. **Update CI/CD Pipelines**:
    - Update any GitHub Actions or other CI systems to use Bun commands
-   - Replace `npm ci` with `bun install --frozen-lockfile`
+   - Replace `npm ci` with `bun install`
    - Replace `npm run` with `bun run`
 
 4. **Team Communication**:

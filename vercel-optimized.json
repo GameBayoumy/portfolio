@@ -1,8 +1,8 @@
 {
-  "buildCommand": "node scripts/vercel-deploy-hook.js pre && bun install --frozen-lockfile && bun run ci:build",
+  "buildCommand": "node scripts/vercel-deploy-hook.js pre && bun install && bun run ci:build",
   "outputDirectory": ".next",
   "framework": "nextjs", 
-  "installCommand": "bun install --frozen-lockfile",
+  "installCommand": "bun install",
   "devCommand": "bun run dev",
   "regions": ["iad1", "sfo1", "fra1"],
   "functions": {
