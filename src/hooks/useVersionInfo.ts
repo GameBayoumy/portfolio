@@ -109,6 +109,20 @@ export const useVersionInfo = () => {
     return apiVersions?.compatibility[service]?.apiVersion ?? 'unknown';
   };
 
+  type CompatibilityService = ApiVersions['compatibility'][keyof ApiVersions['compatibility']];
+
+  const hasSupportedFeatures = (
+    config: CompatibilityService
+  ): config is CompatibilityService & { supportedFeatures: string[] } => {
+    return Array.isArray((config as { supportedFeatures?: unknown }).supportedFeatures);
+  };
+
+  const hasDeprecatedFeatures = (
+    config: CompatibilityService
+  ): config is CompatibilityService & { deprecatedFeatures: string[] } => {
+    return Array.isArray((config as { deprecatedFeatures?: unknown }).deprecatedFeatures);
+  };
+
   /**
    * Check if an API feature is supported
    */
@@ -117,13 +131,9 @@ export const useVersionInfo = () => {
     feature: string
   ): boolean => {
     const serviceConfig = apiVersions?.compatibility[service];
-    if (!serviceConfig) return false;
-    
-    if ('supportedFeatures' in serviceConfig) {
-      return serviceConfig.supportedFeatures.includes(feature);
-    }
-    
-    return false;
+    if (!serviceConfig || !hasSupportedFeatures(serviceConfig)) return false;
+
+    return serviceConfig.supportedFeatures.includes(feature);
   };
 
   /**
@@ -134,8 +144,8 @@ export const useVersionInfo = () => {
     feature: string
   ): boolean => {
     const serviceConfig = apiVersions?.compatibility[service];
-    if (!serviceConfig || !('deprecatedFeatures' in serviceConfig)) return false;
-    
+    if (!serviceConfig || !hasDeprecatedFeatures(serviceConfig)) return false;
+
     return serviceConfig.deprecatedFeatures.includes(feature);
   };
 
@@ -174,7 +184,7 @@ export const useVersionInfo = () => {
 
     // Check for deprecated features
     Object.entries(apiVersions.compatibility).forEach(([service, config]) => {
-      if ('deprecatedFeatures' in config && config.deprecatedFeatures.length > 0) {
+      if (hasDeprecatedFeatures(config) && config.deprecatedFeatures.length > 0) {
         warnings.push(
           `${service} has deprecated features: ${config.deprecatedFeatures.join(', ')}`
         );

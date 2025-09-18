@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/hooks/**/*.ts",
+    "src/lib/**/*.ts",
+    "src/services/**/*.ts",
+    "src/types/**/*.d.ts"
+  ],
+  "exclude": [
+    "**/*.tsx"
+  ]
+}

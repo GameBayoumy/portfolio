@@ -32,17 +32,111 @@ export type {
 
 // Remove duplicate type definitions (they're now imported)
 
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+  ttl: number;
+}
 
 class GitHubApiService {
   private readonly baseURL = 'https://api.github.com';
   private readonly username = 'GameBayoumy';
-  private cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
+  private readonly storageKeyPrefix = 'github-api-cache:';
+  private readonly dailyTTL = 24 * 60 * 60 * 1000;
+  private cache = new Map<string, CacheEntry<unknown>>();
+  private persistentStorageAvailable: boolean | null = null;
 
-  private async makeRequest<T>(endpoint: string, ttl = 300000): Promise<T> {
+  private isCacheValid(entry: CacheEntry<unknown>): boolean {
+    return Date.now() - entry.timestamp < entry.ttl;
+  }
+
+  private getPersistentCacheKey(endpoint: string): string {
+    return `${this.storageKeyPrefix}${endpoint}`;
+  }
+
+  private isPersistentStorageAvailable(): boolean {
+    if (this.persistentStorageAvailable !== null) {
+      return this.persistentStorageAvailable;
+    }
+
+    if (typeof window === 'undefined') {
+      this.persistentStorageAvailable = false;
+      return false;
+    }
+
+    try {
+      const testKey = `${this.storageKeyPrefix}__test__`;
+      window.localStorage.setItem(testKey, '1');
+      window.localStorage.removeItem(testKey);
+      this.persistentStorageAvailable = true;
+    } catch (error) {
+      console.warn('GitHub API cache: persistent storage not available', error);
+      this.persistentStorageAvailable = false;
+    }
+
+    return this.persistentStorageAvailable;
+  }
+
+  private getPersistentCacheEntry<T>(endpoint: string): CacheEntry<T> | null {
+    if (!this.isPersistentStorageAvailable()) {
+      return null;
+    }
+
+    try {
+      const raw = window.localStorage.getItem(this.getPersistentCacheKey(endpoint));
+      if (!raw) {
+        return null;
+      }
+
+      const parsed = JSON.parse(raw) as CacheEntry<T> | null;
+      if (!parsed) {
+        return null;
+      }
+
+      return parsed;
+    } catch (error) {
+      console.warn('GitHub API cache: failed to read from persistent storage', error);
+      return null;
+    }
+  }
+
+  private setPersistentCacheEntry<T>(endpoint: string, entry: CacheEntry<T>): void {
+    if (!this.isPersistentStorageAvailable()) {
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(this.getPersistentCacheKey(endpoint), JSON.stringify(entry));
+    } catch (error) {
+      console.warn('GitHub API cache: failed to write to persistent storage', error);
+    }
+  }
+
+  private getCacheEntry<T>(endpoint: string): CacheEntry<T> | null {
+    const inMemory = this.cache.get(endpoint) as CacheEntry<T> | undefined;
+    if (inMemory) {
+      return inMemory;
+    }
+
+    const persistent = this.getPersistentCacheEntry<T>(endpoint);
+    if (persistent) {
+      this.cache.set(endpoint, persistent);
+      return persistent;
+    }
+
+    return null;
+  }
+
+  private setCacheEntry<T>(endpoint: string, entry: CacheEntry<T>): void {
+    this.cache.set(endpoint, entry);
+    this.setPersistentCacheEntry(endpoint, entry);
+  }
+
+  private async makeRequest<T>(endpoint: string, ttl = this.dailyTTL): Promise<T> {
     const cacheKey = endpoint;
-    const cached = this.cache.get(cacheKey);
-    
-    if (cached && Date.now() - cached.timestamp < cached.ttl) {
+    const cached = this.getCacheEntry<T>(cacheKey);
+
+    if (cached && this.isCacheValid(cached)) {
       return cached.data;
     }
 
@@ -57,42 +151,54 @@ class GitHubApiService {
         timeout: 10000,
       });
 
-      this.cache.set(cacheKey, {
+      const entry: CacheEntry<T> = {
         data: response.data,
         timestamp: Date.now(),
-        ttl
-      });
+        ttl,
+      };
+
+      this.setCacheEntry(cacheKey, entry);
 
       return response.data;
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        console.error(`GitHub API Error (${endpoint}):`, error.response?.status, error.response?.data);
-        
-        // Return cached data if available, even if expired
-        if (cached) {
-          console.warn('Using expired cache due to API error');
-          return cached.data;
-        }
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { status?: number; data?: unknown } };
+        console.error(
+          `GitHub API Error (${endpoint}):`,
+          axiosError.response?.status,
+          axiosError.response?.data
+        );
+      } else if (error instanceof Error) {
+        console.error(`GitHub API Error (${endpoint}):`, error.message);
+      } else {
+        console.error(`GitHub API Error (${endpoint}):`, error);
       }
+
+      // Return cached data if available, even if expired
+      if (cached) {
+        console.warn('Using cached GitHub data due to API error');
+        return cached.data;
+      }
+
       throw error;
     }
   }
 
   async getUserProfile(): Promise<GitHubUser> {
-    return this.makeRequest<GitHubUser>(`/users/${this.username}`, 900000); // 15 min cache
+    return this.makeRequest<GitHubUser>(`/users/${this.username}`, this.dailyTTL); // 24 hour cache
   }
 
   async getUserRepositories(): Promise<GitHubRepository[]> {
     return this.makeRequest<GitHubRepository[]>(
       `/users/${this.username}/repos?sort=updated&per_page=100`,
-      1800000 // 30 min cache
+      this.dailyTTL // 24 hour cache
     );
   }
 
   async getRepositoryLanguages(repoName: string): Promise<GitHubLanguages> {
     return this.makeRequest<GitHubLanguages>(
       `/repos/${this.username}/${repoName}/languages`,
-      3600000 // 1 hour cache
+      this.dailyTTL // 24 hour cache
     );
   }
 
@@ -161,7 +267,7 @@ class GitHubApiService {
   async getUserActivity(page = 1, per_page = 30): Promise<GitHubEvent[]> {
     return this.makeRequest<GitHubEvent[]>(
       `/users/${this.username}/events?page=${page}&per_page=${per_page}`,
-      300000 // 5 min cache
+      this.dailyTTL // 24 hour cache
     );
   }
 
@@ -507,6 +613,24 @@ class GitHubApiService {
   // Clear cache manually if needed
   clearCache(): void {
     this.cache.clear();
+
+    if (!this.isPersistentStorageAvailable()) {
+      return;
+    }
+
+    try {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < window.localStorage.length; i++) {
+        const key = window.localStorage.key(i);
+        if (key && key.startsWith(this.storageKeyPrefix)) {
+          keysToRemove.push(key);
+        }
+      }
+
+      keysToRemove.forEach(key => window.localStorage.removeItem(key));
+    } catch (error) {
+      console.warn('GitHub API cache: failed to clear persistent cache', error);
+    }
   }
 }
 
