@@ -3,14 +3,13 @@
 import { useGitHubStats } from '@/hooks/useGitHubStats';
 import { GitHubStatsGrid } from '@/components/github-visualizers/GitHubStatsGrid';
 import { LanguageDistribution } from '@/components/github-visualizers/LanguageDistribution';
-// Temporarily disabled for build compatibility
-// import { RepositoryNetwork3D } from '@/components/github-visualizers/network';
+import { RepositoryNetwork3D } from '@/components/github-visualizers/network';
 import { ContributionHeatmap } from '@/components/github-visualizers/heatmap';
 import { ActivityTimeline } from '@/components/github-visualizers/timeline';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { Github, Activity, TrendingUp, Code2 } from 'lucide-react';
-import { useState, Suspense } from 'react';
+import { useState } from 'react';
 
 export default function GitHubVisualizersSection() {
   const { data, loading, error, refetch } = useGitHubStats();
@@ -202,17 +201,16 @@ export default function GitHubVisualizersSection() {
                     </motion.div>
                   )}
 
-                  {activeTab === 'network' && (
+                  {activeTab === 'network' && data?.repositories && (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3 }}
-                      className="glass-morphism p-6 rounded-xl"
                     >
-                      {/* Temporarily disabled for build compatibility */}
-                      <div className="flex items-center justify-center h-96">
-                        <div className="text-gray-400">3D Network visualization temporarily disabled</div>
-                      </div>
+                      <RepositoryNetwork3D
+                        repositories={data.repositories}
+                        className="glass-morphism rounded-xl p-6"
+                      />
                     </motion.div>
                   )}
 
