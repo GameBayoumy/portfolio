@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { BufferGeometry, BufferAttribute, Color, Vector3, AdditiveBlending } from 'three';
+import { BufferGeometry, BufferAttribute, Color, AdditiveBlending, Vector3 } from 'three';
 import * as THREE from 'three';
 
 interface NetworkConnection {
@@ -126,24 +126,58 @@ const NetworkEdge: React.FC<NetworkEdgeProps> = ({
     return geometry;
   }, [connections, connectionColors, selectedNodeId, hoveredNodeId]);
 
+  useEffect(() => {
+    return () => {
+      staticGeometry.dispose();
+      animatedGeometry?.dispose();
+    };
+  }, [staticGeometry, animatedGeometry]);
+
   useFrame((state) => {
     if (linesRef.current) {
-      // Update static lines opacity based on interaction state
       const material = linesRef.current.material as THREE.LineBasicMaterial;
-      const targetOpacity = selectedNodeId || hoveredNodeId ? 0.2 : 0.4;
-      material.opacity += (targetOpacity - material.opacity) * 0.1;
+      const targetOpacity = selectedNodeId || hoveredNodeId ? 0.18 : 0.35;
+      material.opacity += (targetOpacity - material.opacity) * 0.08;
     }
 
-    if (animatedLinesRef.current && animatedGeometry) {
-      // Pulse effect for highlighted connections
+    if (animatedLinesRef.current) {
       const material = animatedLinesRef.current.material as THREE.LineBasicMaterial;
-      material.opacity = 0.8 + Math.sin(state.clock.elapsedTime * 4) * 0.2;
+      material.opacity = 0.65 + Math.sin(state.clock.elapsedTime * 3.5) * 0.2;
     }
   });
 
-  // Temporarily disabled for build compatibility
-  return null;
+  if (connections.length === 0) {
+    return null;
+  }
+
+  return (
+    <group>
+      <lineSegments ref={linesRef} geometry={staticGeometry} frustumCulled={false}>
+        <lineBasicMaterial
+          vertexColors
+          transparent
+          depthWrite={false}
+          opacity={0.3}
+          blending={AdditiveBlending}
+          toneMapped={false}
+        />
+      </lineSegments>
+
+      {animatedGeometry && (
+        <lineSegments ref={animatedLinesRef} geometry={animatedGeometry} frustumCulled={false}>
+          <lineBasicMaterial
+            vertexColors
+            transparent
+            depthWrite={false}
+            opacity={0.85}
+            linewidth={2}
+            blending={AdditiveBlending}
+            toneMapped={false}
+          />
+        </lineSegments>
+      )}
+    </group>
+  );
 };
 
 export default NetworkEdge;
-// Temporarily disabled for build
