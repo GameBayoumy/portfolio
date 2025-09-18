@@ -1,22 +1,14 @@
 'use client'
 
-import { useEffect, useRef, useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { useQuery } from '@tanstack/react-query'
 import { useInView } from 'react-intersection-observer'
-import * as d3 from 'd3'
 import { gitHubApi } from '@/services/github-api'
-import { ContributionYear, ContributionDay } from '@/types/github'
+import { ContributionDay, ContributionYear } from '@/types/github'
 import { HeatmapGrid } from './HeatmapGrid'
 import { HeatmapTooltip } from './HeatmapTooltip'
 import { HeatmapLegend } from './HeatmapLegend'
 import { ChevronLeft, ChevronRight, Calendar, TrendingUp, Activity } from 'lucide-react'
-
-interface HeatmapTooltipData {
-  date: string
-  count: number
-  level: number
-}
 
 interface HeatmapStats {
   totalContributions: number
@@ -49,6 +41,8 @@ function HeatmapSkeleton() {
   )
 }
 
+const CONTRIBUTION_CACHE_TTL = 60 * 60 * 1000 // 1 hour
+
 export default function ContributionHeatmap() {
   const { ref, inView } = useInView({
     threshold: 0.1,
@@ -59,15 +53,65 @@ export default function ContributionHeatmap() {
   const [hoveredDay, setHoveredDay] = useState<ContributionDay | null>(null)
   const [showTooltip, setShowTooltip] = useState(false)
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
-  const containerRef = useRef<HTMLDivElement>(null)
-  
-  const { data: contributionData, isLoading, error } = useQuery({
-    queryKey: ['github', 'contributions', selectedYear],
-    queryFn: () => gitHubApi.getUserContributions(selectedYear),
-    enabled: inView,
-    staleTime: 60 * 60 * 1000, // 1 hour
-    retry: 2
-  })
+  const [contributionData, setContributionData] = useState<ContributionYear | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const contributionCache = useRef(new Map<number, { data: ContributionYear; timestamp: number }>())
+
+  useEffect(() => {
+    if (!inView) {
+      return
+    }
+
+    let isActive = true
+    const cacheEntry = contributionCache.current.get(selectedYear)
+    const isCacheFresh = cacheEntry ? Date.now() - cacheEntry.timestamp < CONTRIBUTION_CACHE_TTL : false
+
+    if (cacheEntry) {
+      setContributionData(cacheEntry.data)
+      setError(null)
+
+      if (isCacheFresh) {
+        setIsLoading(false)
+        return () => {
+          isActive = false
+        }
+      }
+    } else {
+      setContributionData(null)
+    }
+
+    setIsLoading(!cacheEntry)
+    setError(null)
+
+    gitHubApi
+      .getUserContributions(selectedYear)
+      .then(result => {
+        if (!isActive) return
+
+        contributionCache.current.set(selectedYear, { data: result, timestamp: Date.now() })
+        setContributionData(result)
+        setError(null)
+      })
+      .catch(err => {
+        if (!isActive) return
+
+        console.error('Failed to fetch contribution data:', err)
+
+        if (!cacheEntry) {
+          setError(err instanceof Error ? err.message : 'Failed to load contribution data')
+          setContributionData(null)
+        }
+      })
+      .finally(() => {
+        if (!isActive) return
+        setIsLoading(false)
+      })
+
+    return () => {
+      isActive = false
+    }
+  }, [inView, selectedYear])
 
   const availableYears = useMemo(() => {
     const currentYear = new Date().getFullYear()
@@ -125,6 +169,7 @@ export default function ContributionHeatmap() {
 
     const allDays = contributionData.weeks.flatMap(week => week.contributionDays)
     const totalContributions = contributionData.totalContributions
+    const totalDays = allDays.length || 1
     const activeWeeks = contributionData.weeks.filter(week => week.totalContributions > 0).length
     
     // Calculate streaks
@@ -154,7 +199,7 @@ export default function ContributionHeatmap() {
 
     return {
       totalContributions,
-      dailyAverage: Math.round(totalContributions / 365 * 10) / 10,
+      dailyAverage: Math.round((totalContributions / totalDays) * 10) / 10,
       activeWeeks,
       longestStreak,
       currentStreak,
@@ -177,9 +222,9 @@ export default function ContributionHeatmap() {
     console.log('Day clicked:', day)
   }, [])
 
-  if (error) {
+  if (error && !contributionData) {
     return (
-      <motion.div 
+      <motion.div
         ref={ref}
         className="glass-morphism p-8 rounded-xl"
         initial={{ opacity: 0, y: 20 }}
@@ -197,7 +242,7 @@ export default function ContributionHeatmap() {
 
   if (isLoading || !contributionData) {
     return (
-      <motion.div 
+      <motion.div
         ref={ref}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -208,58 +253,72 @@ export default function ContributionHeatmap() {
     )
   }
 
+  const minAvailableYear = availableYears[availableYears.length - 1]
+  const maxAvailableYear = availableYears[0]
+
   return (
     <motion.div
       ref={ref}
-      className="glass-morphism p-8 rounded-xl"
+      className="glass-morphism rounded-xl p-6 sm:p-8"
       initial={{ opacity: 0, y: 20 }}
       animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
       transition={{ duration: 0.8 }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Calendar className="w-6 h-6 text-neon-green" />
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <Calendar className="h-6 w-6 text-neon-green" />
           <div>
             <h3 className="text-xl font-semibold text-white">GitHub Contributions</h3>
-            <p className="text-gray-400 text-sm">Daily contribution activity</p>
+            <p className="text-sm text-gray-400">
+              Daily contribution activity for{' '}
+              <span className="font-medium text-white">{selectedYear}</span>
+            </p>
           </div>
         </div>
 
         {/* Year Navigation */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-3 rounded-lg bg-glass-100/70 p-2 sm:bg-transparent sm:p-0">
           <button
-            onClick={() => setSelectedYear(Math.min(selectedYear + 1, availableYears[0]))}
-            disabled={selectedYear >= availableYears[0]}
-            className="p-2 rounded-lg bg-glass-100 hover:bg-glass-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            type="button"
+            onClick={() => setSelectedYear(year => Math.max(year - 1, minAvailableYear))}
+            disabled={selectedYear <= minAvailableYear}
+            aria-label="View previous year"
+            className="rounded-md p-2 transition-colors hover:bg-glass-200 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <ChevronLeft className="w-4 h-4 text-gray-400" />
+            <ChevronLeft className="h-4 w-4 text-gray-300" />
           </button>
-          
+
+          <label className="sr-only" htmlFor="contribution-year-select">
+            Select contribution year
+          </label>
           <select
+            id="contribution-year-select"
             value={selectedYear}
-            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-            className="bg-glass-100 text-white px-3 py-2 rounded-lg text-sm font-medium"
+            onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
+            className="min-w-[5rem] rounded-md border border-glass-200 bg-glass-100 px-3 py-2 text-center text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-neon-blue/60"
           >
             {availableYears.map(year => (
-              <option key={year} value={year} className="bg-slate-800">
+              <option key={year} value={year}>
                 {year}
               </option>
             ))}
           </select>
-          
+
           <button
-            onClick={() => setSelectedYear(Math.max(selectedYear - 1, availableYears[availableYears.length - 1]))}
-            disabled={selectedYear <= availableYears[availableYears.length - 1]}
-            className="p-2 rounded-lg bg-glass-100 hover:bg-glass-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            type="button"
+            onClick={() => setSelectedYear(year => Math.min(year + 1, maxAvailableYear))}
+            disabled={selectedYear >= maxAvailableYear}
+            aria-label="View next year"
+            className="rounded-md p-2 transition-colors hover:bg-glass-200 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <ChevronRight className="w-4 h-4 text-gray-400" />
+            <ChevronRight className="h-4 w-4 text-gray-300" />
           </button>
         </div>
       </div>
 
       {/* Contribution Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 sm:gap-4">
         <div className="p-4 bg-glass-100 rounded-lg text-center">
           <div className="text-2xl font-bold text-neon-green">
             {heatmapStats.totalContributions}
@@ -297,8 +356,8 @@ export default function ContributionHeatmap() {
       </div>
 
       {/* Contribution Heatmap */}
-      <div ref={containerRef} className="mb-6 overflow-x-auto">
-        <div className="min-w-max p-4 bg-gradient-to-r from-slate-900/20 to-slate-800/20 rounded-lg">
+      <div className="mb-6">
+        <div className="rounded-lg bg-gradient-to-r from-slate-900/20 to-slate-800/20 p-4 sm:p-6">
           {heatmapData && (
             <HeatmapGrid
               data={heatmapData}

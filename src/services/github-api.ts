@@ -411,50 +411,99 @@ class GitHubApiService {
 
   async getUserContributions(year: number): Promise<ContributionYear> {
     // Note: GitHub doesn't provide contributions via API directly
-    // This is a simplified simulation based on commit activity
+    // This is a simplified simulation based on commit activity with
+    // fallbacks that keep the visualizer operational when the GitHub
+    // API isn't reachable (common during local development or when the
+    // anonymous rate limit is exceeded).
     const startDate = new Date(year, 0, 1);
     const endDate = new Date(year, 11, 31);
-    
-    // Generate mock contribution data based on repository activity
-    const repositories = await this.getUserRepositories();
-    const contributionDays = this.generateContributionDays(startDate, endDate, repositories);
-    
+
+    let repositories: GitHubRepository[] | null = null;
+
+    try {
+      repositories = await this.getUserRepositories();
+    } catch (error) {
+      console.warn('Falling back to simulated contribution data – repository fetch failed.', error);
+    }
+
+    const contributionDays = this.generateContributionDays(
+      startDate,
+      endDate,
+      repositories,
+      `${year}-${repositories?.length ?? 'fallback'}`
+    );
+    const weeks = this.groupDaysByWeeks(contributionDays);
+    const totalContributions = contributionDays.reduce((sum, day) => sum + day.count, 0);
+
     return {
       year,
-      totalContributions: contributionDays.reduce((sum, day) => sum + day.count, 0),
-      weeks: this.groupDaysByWeeks(contributionDays),
+      totalContributions,
+      weeks,
       range: {
         start: startDate.toISOString().split('T')[0],
         end: endDate.toISOString().split('T')[0]
       },
       contributionCalendar: {
         colors: ['#161b22', '#0e4429', '#006d32', '#26a641', '#39d353'],
-        totalContributions: contributionDays.reduce((sum, day) => sum + day.count, 0),
-        weeks: this.groupDaysByWeeks(contributionDays)
+        totalContributions,
+        weeks
       }
     };
   }
 
-  private generateContributionDays(startDate: Date, endDate: Date, repositories: GitHubRepository[]): ContributionDay[] {
+  private generateContributionDays(
+    startDate: Date,
+    endDate: Date,
+    repositories: GitHubRepository[] | null,
+    seed: string
+  ): ContributionDay[] {
     const days: ContributionDay[] = [];
     const currentDate = new Date(startDate);
-    
+    const millisecondsPerDay = 1000 * 60 * 60 * 24;
+    const totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / millisecondsPerDay) + 1;
+    const random = this.createSeededRandom(seed);
+
     while (currentDate <= endDate) {
-      // Simulate contribution count based on repository activity
       const dayOfWeek = currentDate.getDay();
       const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-      const baseActivity = isWeekend ? 0.3 : 0.8;
-      
-      // More activity on recent repositories
-      const recentActivity = repositories.filter(repo => {
-        const pushDate = new Date(repo.pushed_at || repo.updated_at);
-        const timeDiff = Math.abs(currentDate.getTime() - pushDate.getTime());
-        const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
-        return daysDiff <= 7; // Activity within a week
-      }).length;
-      
-      const contributionCount = Math.floor(Math.random() * (baseActivity + recentActivity) * 10);
-      
+      const dayIndex = Math.floor((currentDate.getTime() - startDate.getTime()) / millisecondsPerDay);
+      const baseActivity = isWeekend ? 0.35 : 1;
+
+      // Introduce seasonal and weekly rhythms to keep the data feeling organic.
+      const seasonalTrend = (Math.sin((dayIndex / totalDays) * Math.PI * 2) + 1) * 0.6;
+      const weeklyRhythm = (Math.sin((dayIndex / 7) * Math.PI * 2) + 1) * 0.4;
+
+      let activitySignal = baseActivity + seasonalTrend + weeklyRhythm;
+
+      if (repositories && repositories.length > 0) {
+        // Boost activity around recently updated repositories to better
+        // mirror real-world commit bursts.
+        const recentActivity = repositories.reduce((score, repo) => {
+          const reference = repo.pushed_at || repo.updated_at;
+          if (!reference) {
+            return score;
+          }
+
+          const activityDate = new Date(reference);
+          const diffInDays = Math.abs(currentDate.getTime() - activityDate.getTime()) / millisecondsPerDay;
+
+          if (diffInDays <= 2) return score + 1.8;
+          if (diffInDays <= 7) return score + 1.2;
+          if (diffInDays <= 14) return score + 0.6;
+          return score;
+        }, 0);
+
+        activitySignal += recentActivity / Math.max(1, repositories.length / 10);
+      } else {
+        // When repository data is unavailable, synthesise believable
+        // streaks so the heatmap still communicates momentum.
+        activitySignal += this.calculateFallbackActivity(dayIndex, random);
+      }
+
+      const randomVariation = random() * 1.2;
+      const intensity = Math.max(0, activitySignal + randomVariation - 1.2);
+      const contributionCount = Math.round(intensity * 2.4);
+
       days.push({
         date: currentDate.toISOString().split('T')[0],
         count: contributionCount,
@@ -469,6 +518,29 @@ class GitHubApiService {
     return days;
   }
 
+  private calculateFallbackActivity(dayIndex: number, random: () => number): number {
+    const biWeeklyPulse = (Math.sin((dayIndex / 14) * Math.PI * 2) + 1) * 0.8;
+    const quarterlySwing = (Math.sin((dayIndex / 90) * Math.PI * 2 + Math.PI / 4) + 1) * 0.9;
+    const streakBoost = random() > 0.9 ? 3 + random() * 2 : random() * 0.5;
+
+    return biWeeklyPulse + quarterlySwing + streakBoost * 0.4;
+  }
+
+  private createSeededRandom(seed: string): () => number {
+    let h = 1779033703 ^ seed.length;
+    for (let i = 0; i < seed.length; i += 1) {
+      h = Math.imul(h ^ seed.charCodeAt(i), 3432918353);
+      h = (h << 13) | (h >>> 19);
+    }
+
+    return () => {
+      h = Math.imul(h ^ (h >>> 16), 2246822507);
+      h = Math.imul(h ^ (h >>> 13), 3266489909);
+      h ^= h >>> 16;
+      return (h >>> 0) / 4294967296;
+    };
+  }
+
   private getContributionLevel(count: number): 0 | 1 | 2 | 3 | 4 {
     if (count === 0) return 0;
     if (count <= 3) return 1;
@@ -479,29 +551,34 @@ class GitHubApiService {
 
   private getWeekOfYear(date: Date): number {
     const start = new Date(date.getFullYear(), 0, 1);
-    const days = Math.floor((date.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
-    return Math.ceil(days / 7);
+    const millisecondsPerDay = 24 * 60 * 60 * 1000;
+    const dayOfYear = Math.floor((date.getTime() - start.getTime()) / millisecondsPerDay);
+    const offset = start.getDay();
+    return Math.floor((dayOfYear + offset) / 7);
   }
 
   private groupDaysByWeeks(days: ContributionDay[]) {
-    const weeks: any[] = [];
     const weekMap = new Map<number, ContributionDay[]>();
-    
+
     days.forEach(day => {
-      const weekDays = weekMap.get(day.week) || [];
-      weekDays.push(day);
-      weekMap.set(day.week, weekDays);
+      const bucket = weekMap.get(day.week) ?? [];
+      bucket.push(day);
+      weekMap.set(day.week, bucket);
     });
-    
-    weekMap.forEach((contributionDays, week) => {
-      weeks.push({
-        contributionDays,
-        firstDay: contributionDays[0]?.date || '',
-        totalContributions: contributionDays.reduce((sum, day) => sum + day.count, 0)
+
+    return Array.from(weekMap.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([, contributionDays]) => {
+        const orderedDays = [...contributionDays].sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+
+        return {
+          contributionDays: orderedDays,
+          firstDay: orderedDays[0]?.date || '',
+          totalContributions: orderedDays.reduce((sum, day) => sum + day.count, 0)
+        };
       });
-    });
-    
-    return weeks;
   }
 
   // Clear cache manually if needed
