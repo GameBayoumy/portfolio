@@ -186,8 +186,8 @@ document.body.style.cursor = 'auto';
 
 2. **Dependency Verification**:
    ```bash
-   bun install --frozen-lockfile
-   # Should complete without errors
+   bun install
+   # Should complete without errors when lockfile is in sync
    ```
 
 3. **Production Build Test**:

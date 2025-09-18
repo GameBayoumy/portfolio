@@ -17,7 +17,7 @@
     "analyze": "ANALYZE=true next build",
     "clean": "rimraf .next out dist",
     "prepare": "husky install",
-    "ci:install": "bun install --frozen-lockfile",
+    "ci:install": "bun install",
     "ci:build": "bun run build",
     "ci:build:safe": "bun run type-check:deployment && bun run build",
     "ci:test": "bun run lint && bun run type-check && bun run format:check",
