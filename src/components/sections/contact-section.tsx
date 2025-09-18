@@ -37,17 +37,43 @@ export default function ContactSection() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitStatus('idle');
     setIsSubmitting(true);
-    
+
     try {
-      // Simulate API call - replace with actual implementation
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // For now, just open email client
-      const emailBody = `Name: ${formData.name}%0D%0AEmail: ${formData.email}%0D%0ASubject: ${formData.subject}%0D%0AProject Type: ${formData.projectType || 'Not specified'}%0D%0ABudget: ${formData.budget || 'Not specified'}%0D%0ATimeline: ${formData.timeline || 'Not specified'}%0D%0A%0D%0AMessage:%0D%0A${formData.message}`;
-      
-      window.open(`mailto:contact@sharifbayoumy.com?subject=${encodeURIComponent(formData.subject)}&body=${emailBody}`);
-      
+      const payload: Record<string, string> = {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        subject: formData.subject.trim(),
+        message: formData.message.trim(),
+      };
+
+      if (formData.projectType) {
+        payload.projectType = formData.projectType;
+      }
+
+      if (formData.budget) {
+        payload.budget = formData.budget;
+      }
+
+      if (formData.timeline) {
+        payload.timeline = formData.timeline;
+      }
+
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = (await response.json().catch(() => null)) as { message?: string; error?: string } | null;
+
+      if (!response.ok) {
+        throw new Error(result?.error || 'Failed to send message');
+      }
+
       setSubmitStatus('success');
       setFormData({
         name: '',
@@ -59,6 +85,7 @@ export default function ContactSection() {
         timeline: undefined,
       });
     } catch (error) {
+      console.error('Failed to submit contact form', error);
       setSubmitStatus('error');
     } finally {
       setIsSubmitting(false);
@@ -66,11 +93,40 @@ export default function ContactSection() {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+
+    setFormData(prev => {
+      switch (name) {
+        case 'projectType':
+          return {
+            ...prev,
+            projectType: value === '' ? undefined : (value as ContactFormData['projectType']),
+          };
+        case 'budget':
+          return {
+            ...prev,
+            budget: value === '' ? undefined : (value as ContactFormData['budget']),
+          };
+        case 'timeline':
+          return {
+            ...prev,
+            timeline: value === '' ? undefined : (value as ContactFormData['timeline']),
+          };
+        case 'name':
+          return { ...prev, name: value };
+        case 'email':
+          return { ...prev, email: value };
+        case 'subject':
+          return { ...prev, subject: value };
+        case 'message':
+          return { ...prev, message: value };
+        default:
+          return prev;
+      }
+    });
   };
 
   const contactInfo = [
