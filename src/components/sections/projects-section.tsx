@@ -216,26 +216,24 @@ export default function ProjectsSection() {
               onClick={() => setSelectedProject(project)}
               whileHover={{ y: -5 }}
             >
-              {/* Project Status Badge */}
-              <div className="absolute top-4 right-4">
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    project.status === 'completed'
-                      ? 'bg-green-900/50 text-green-300'
-                      : project.status === 'in-progress'
-                      ? 'bg-blue-900/50 text-blue-300'
-                      : 'bg-orange-900/50 text-orange-300'
-                  }`}
-                >
-                  {project.status}
-                </span>
-              </div>
-
               {/* Project Header */}
-              <div className="mb-4">
-                <h3 className="text-xl font-bold text-white mb-2 group-hover:text-neon-blue transition-colors">
-                  {project.title}
-                </h3>
+              <div className="mb-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="text-xl font-bold text-white group-hover:text-neon-blue transition-colors">
+                    {project.title}
+                  </h3>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-semibold shrink-0 ${
+                      project.status === 'completed'
+                        ? 'bg-green-900/50 text-green-300'
+                        : project.status === 'in-progress'
+                        ? 'bg-blue-900/50 text-blue-300'
+                        : 'bg-orange-900/50 text-orange-300'
+                    }`}
+                  >
+                    {project.status}
+                  </span>
+                </div>
                 <p className="text-gray-400 text-sm leading-relaxed">
                   {project.description}
                 </p>
