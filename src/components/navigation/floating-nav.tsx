@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { Home, User, Briefcase, Github, Linkedin as LinkedinIcon, Mail, Menu, X } from 'lucide-react';
 
 
@@ -30,7 +30,14 @@ export default function FloatingNav() {
   const smoothScrollProgress = useSpring(scrollProgress, { stiffness: 120, damping: 20 });
   const topOffset = useMotionValue(24); // px, default top-6
   const smoothTopOffset = useSpring(topOffset, { stiffness: 120, damping: 20 });
+  const safeTopOffset = useTransform(smoothTopOffset, (value) => `calc(env(safe-area-inset-top, 0px) + ${value}px)`);
   const [isScrolled, setIsScrolled] = useState(false);
+  const mobileTriggerTop = 'calc(env(safe-area-inset-top, 0px) + 1rem)';
+  const mobileMenuTop = 'calc(env(safe-area-inset-top, 0px) + 5rem)';
+  const desktopInlinePadding = 'calc(env(safe-area-inset-left, 0px) + 1.5rem)';
+  const desktopInlinePaddingRight = 'calc(env(safe-area-inset-right, 0px) + 1.5rem)';
+  const desktopNavMaxWidth =
+    'min(56rem, calc(100vw - (env(safe-area-inset-left, 0px) + env(safe-area-inset-right, 0px) + 3rem)))';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -79,56 +86,62 @@ export default function FloatingNav() {
     <>
       {/* Desktop Navigation */}
       <motion.nav
-        className={
-          'fixed left-1/2 transform -translate-x-1/2 z-50 hidden md:block transition-all duration-300'
-        }
-        style={{ top: smoothTopOffset }}
+        className="fixed inset-x-0 z-50 hidden md:flex justify-center transition-all duration-300"
+        style={{
+          top: safeTopOffset,
+          paddingLeft: desktopInlinePadding,
+          paddingRight: desktopInlinePaddingRight,
+        }}
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.8, ease: 'easeOut' }}
       >
-        <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl px-6 py-3 shadow-2xl">
-          <div className="flex items-center space-x-1">
-            {navItems.map((item) => {
-              const isActive = activeSection === item.id;
-              const Icon = item.icon;
+        <div
+          className={`inline-flex flex-wrap items-center justify-center gap-1 backdrop-blur-md rounded-2xl px-6 py-3 shadow-2xl border transition-colors duration-300 ${
+            isScrolled ? 'bg-black/70 border-white/20' : 'bg-black/40 border-white/10'
+          }`}
+          style={{ maxWidth: desktopNavMaxWidth }}
+        >
+          {navItems.map((item) => {
+            const isActive = activeSection === item.id;
+            const Icon = item.icon;
 
-              return (
-                <motion.button
-                  key={item.id}
-                  onClick={() => scrollToSection(item.id)}
-                  className={`relative px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
-                    isActive
-                      ? 'text-white'
-                      : 'text-white/60 hover:text-white hover:bg-white/5'
-                  }`}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <div className="flex items-center space-x-2">
-                    <Icon className="w-4 h-4" />
-                    <span>{item.label}</span>
-                  </div>
+            return (
+              <motion.button
+                key={item.id}
+                onClick={() => scrollToSection(item.id)}
+                className={`relative px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+                  isActive
+                    ? 'text-white'
+                    : 'text-white/60 hover:text-white hover:bg-white/5'
+                }`}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <div className="flex items-center space-x-2">
+                  <Icon className="w-4 h-4" />
+                  <span>{item.label}</span>
+                </div>
 
-                  {/* Active indicator */}
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeNav"
-                      className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-xl border border-purple-500/30"
-                      initial={false}
-                      transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                    />
-                  )}
-                </motion.button>
-              );
-            })}
-          </div>
+                {/* Active indicator */}
+                {isActive && (
+                  <motion.div
+                    layoutId="activeNav"
+                    className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-xl border border-purple-500/30"
+                    initial={false}
+                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+              </motion.button>
+            );
+          })}
         </div>
       </motion.nav>
 
       {/* Mobile Navigation */}
       <motion.div
-        className="fixed top-4 right-4 z-50 md:hidden"
+        className="fixed right-4 z-50 md:hidden"
+        style={{ top: mobileTriggerTop }}
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
@@ -180,7 +193,8 @@ export default function FloatingNav() {
 
             {/* Menu Panel */}
             <motion.div
-              className="fixed top-20 right-4 z-50 md:hidden"
+              className="fixed right-4 z-50 md:hidden"
+              style={{ top: mobileMenuTop }}
               initial={{ scale: 0.8, opacity: 0, y: -20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.8, opacity: 0, y: -20 }}
@@ -256,7 +270,7 @@ export default function FloatingNav() {
       {/* Progress Indicator */}
       <motion.div
         className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500 z-50 origin-left"
-        style={{ scaleX: smoothScrollProgress }}
+        style={{ scaleX: smoothScrollProgress, top: 'env(safe-area-inset-top, 0px)' }}
         initial={{ scaleX: 0 }}
         transition={{ duration: 0.1 }}
       />
