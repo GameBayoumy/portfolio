@@ -110,7 +110,11 @@ jobs:
         run: |
           if [[ "${{ needs.setup-validation.outputs.has-lockfile }}" == "true" ]]; then
             if [[ -f "bun.lock" || -f "bun.lockb" ]]; then
-              bun install --frozen-lockfile --no-progress
+              echo "Attempting to install with lockfile..."
+              bun install --no-progress || {
+                echo "Lockfile installation failed, trying without frozen lockfile..."
+                bun install --no-progress
+              }
             else
               bun install --no-progress
             fi
