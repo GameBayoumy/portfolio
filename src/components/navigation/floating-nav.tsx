@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
-import { Home, User, Briefcase, Github, Linkedin as LinkedinIcon, Mail, Menu, X } from 'lucide-react';
+import { Home, User, Briefcase, Github, Mail, Menu, X } from 'lucide-react';
 import { siteConfig } from '@/config/site';
 
 
@@ -19,7 +19,6 @@ const navItems: NavItem[] = [
   { id: 'about', label: 'About', icon: User, href: '#about' },
   { id: 'projects', label: 'Projects', icon: Briefcase, href: '#projects' },
   { id: 'github-stats', label: 'GitHub', icon: Github, href: '#github-stats' },
-  { id: 'linkedin-visualizers', label: 'LinkedIn', icon: LinkedinIcon, href: '#linkedin-visualizers' },
   { id: 'contact', label: 'Contact', icon: Mail, href: '#contact' },
 ];
 

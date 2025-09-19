@@ -10,7 +10,7 @@ A modern, interactive portfolio showcasing XR (Virtual/Augmented Reality) develo
 ## ✨ Features
 
 - **Interactive 3D Background** - Immersive VR headset model with mathematical shader effects
-- **LinkedIn Professional Visualizers** - Interactive experience timeline, skills radar, and achievements
+- Professional visualizers for experience, skills, and achievements
 - **Performance Optimized** - Adaptive quality settings based on device capabilities
 - **Responsive Design** - Perfect experience across desktop, tablet, and mobile
 - **Modern UI Components** - Built with Magic UI and Tailwind CSS
@@ -31,7 +31,7 @@ A modern, interactive portfolio showcasing XR (Virtual/Augmented Reality) develo
 - **Three.js** - 3D graphics library
 - **React Three Fiber** - React renderer for Three.js
 - **React Three Drei** - Useful helpers for R3F
-- **D3.js** - Data visualization for LinkedIn components
+- **D3.js** - Data visualization for interactive components
 - **WebXR Support** - For VR/AR experiences
 
 ### UI & Animation
@@ -106,7 +106,6 @@ npm run analyze
 src/
 ├── components/          # React components
 │   ├── three/          # Three.js 3D components
-│   ├── linkedin/       # LinkedIn integration components
 │   ├── sections/       # Page sections
 │   └── ui/             # UI components
 ├── lib/                # Utility functions
@@ -143,11 +142,7 @@ public/                 # Static assets
 - **MathematicalShapes** - Animated geometric shapes
 - **ThreeDBackground** - Main 3D scene manager
 
-### LinkedIn Professional Components
-- **ExperienceTimeline** - Interactive professional experience timeline
-- **SkillsRadar** - D3.js-powered skills visualization
-- **EducationTimeline** - Educational background with achievements
-- **ExperienceCards** - Detailed experience information cards
+
 
 ### Page Sections
 - **HeroSection** - Landing with animated introduction
@@ -212,7 +207,6 @@ npm run build
 ```env
 CONTACT_EMAIL=contact@sharifbayoumy.com
 GITHUB_URL=https://github.com/GameBayoumy
-LINKEDIN_URL=https://www.linkedin.com/in/sharif-bayoumy/
 RESEND_API_KEY=your_resend_api_key
 RESEND_FROM_EMAIL="Sharif Bayoumy <contact@sharifbayoumy.com>"
 RESEND_TO_EMAIL=contact@sharifbayoumy.com
@@ -250,7 +244,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - Email: contact@sharifbayoumy.com
 - GitHub: [@GameBayoumy](https://github.com/GameBayoumy)
-- LinkedIn: [sharif-bayoumy](https://www.linkedin.com/in/sharif-bayoumy/)
 - Portfolio: [sharifbayoumy.com](https://sharifbayoumy.com)
 
 ## 🙏 Acknowledgments

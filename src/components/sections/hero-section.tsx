@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowDown, Github, Linkedin, Mail, ExternalLink } from 'lucide-react';
+import { ArrowDown, Github, Mail, ExternalLink } from 'lucide-react';
 import { useInView } from 'react-intersection-observer';
 import { siteConfig } from '@/config/site';
 
@@ -194,12 +194,6 @@ export default function HeroSection() {
               color: 'hover:text-white',
             },
             {
-              icon: Linkedin,
-              href: siteConfig.linkedinUrl,
-              label: 'LinkedIn',
-              color: 'hover:text-blue-400',
-            },
-            {
               icon: Mail,
               href: siteConfig.contactMailto,
               label: 'Email',
@@ -211,21 +205,27 @@ export default function HeroSection() {
               label: 'Resume',
               color: 'hover:text-neon-green',
             },
-          ].map((social) => (
-            <motion.a
-              key={social.label}
-              href={social.href}
-              className={`p-3 rounded-full glass-morphism text-gray-400 ${social.color} transition-all duration-300 hover:scale-110 group`}
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.95 }}
-              title={social.label}
-              target={social.href.startsWith('http') ? '_blank' : undefined}
-              rel={social.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-            >
-              <social.icon className="w-6 h-6" />
-              <span className="sr-only">{social.label}</span>
-            </motion.a>
-          ))}
+          ]
+            .filter((s) => Boolean(s.href))
+            .map((social) => {
+              const isExternal =
+                typeof social.href === 'string' && social.href.startsWith('http');
+              return (
+                <motion.a
+                  key={social.label}
+                  href={social.href}
+                  className={`p-3 rounded-full glass-morphism text-gray-400 ${social.color} transition-all duration-300 hover:scale-110 group`}
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                  title={social.label}
+                  target={isExternal ? '_blank' : undefined}
+                  rel={isExternal ? 'noopener noreferrer' : undefined}
+                >
+                  <social.icon className="w-6 h-6" />
+                  <span className="sr-only">{social.label}</span>
+                </motion.a>
+              );
+            })}
         </motion.div>
 
         {/* Scroll Indicator */}
