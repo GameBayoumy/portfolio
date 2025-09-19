@@ -29,9 +29,6 @@ const GitHubVisualizersSection = dynamic(() => import('@/components/github-visua
   ssr: false
 });
 
-const LinkedInVisualizersSection = dynamic(() => import('@/components/linkedin-visualizers/LinkedInVisualizersSection'), {
-  ssr: false
-});
 
 const FloatingNav = dynamic(() => import('@/components/navigation/floating-nav'), {
   ssr: false
@@ -66,9 +63,7 @@ export default function Home() {
           <GitHubVisualizersSection />
         </Suspense>
 
-        <Suspense fallback={<div className="min-h-screen bg-transparent" />}>
-          <LinkedInVisualizersSection />
-        </Suspense>
+        {/* LinkedIn section removed */}
 
         <Suspense fallback={<div className="min-h-screen bg-transparent" />}>
           <ContactSection />

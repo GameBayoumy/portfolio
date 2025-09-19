@@ -21,7 +21,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    domains: ['sharifbayoumy.com', 'github.com', 'linkedin.com'],
+    domains: ['sharifbayoumy.com', 'github.com'],
     formats: ['image/webp', 'image/avif'],
   },
   webpack: (config, { isServer }) => {
@@ -68,7 +68,6 @@ const nextConfig = {
   env: {
     CONTACT_EMAIL: process.env.CONTACT_EMAIL || 'contact@sharifbayoumy.com',
     GITHUB_URL: process.env.GITHUB_URL || 'https://github.com/GameBayoumy',
-    LINKEDIN_URL: process.env.LINKEDIN_URL || 'https://www.linkedin.com/in/sharif-bayoumy/',
   },
   headers: async () => [
     {

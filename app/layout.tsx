@@ -9,8 +9,8 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
   title: 'Sharif Bayoumy - XR Developer & Computer Scientist',
-  description: 'Modern XR developer portfolio showcasing VR/AR projects, 3D experiences, innovative technology solutions, and professional LinkedIn journey.',
-  keywords: ['XR Developer', 'VR', 'AR', 'WebXR', 'Three.js', 'Computer Science', 'Game Development', 'LinkedIn', 'Professional Portfolio'],
+  description: 'Modern XR developer portfolio showcasing VR/AR projects, 3D experiences, and innovative technology solutions.',
+  keywords: ['XR Developer', 'VR', 'AR', 'WebXR', 'Three.js', 'Computer Science', 'Game Development', 'Professional Portfolio'],
   authors: [{ name: 'Sharif Bayoumy', url: 'https://sharifbayoumy.com' }],
   creator: 'Sharif Bayoumy',
   openGraph: {
