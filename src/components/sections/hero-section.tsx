@@ -18,6 +18,9 @@ export default function HeroSection() {
 
   if (!mounted) return null;
 
+  const heroPaddingTop = 'calc(env(safe-area-inset-top, 0px) + clamp(4rem, 8vw, 6.5rem))';
+  const heroPaddingBottom = 'clamp(3rem, 6vw, 5rem)';
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -55,8 +58,9 @@ export default function HeroSection() {
   return (
     <section
       ref={ref}
-      className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8"
+      className="section-anchor-offset relative flex min-h-screen items-center justify-center px-4 sm:px-6 lg:px-8"
       id="hero"
+      style={{ paddingTop: heroPaddingTop, paddingBottom: heroPaddingBottom }}
     >
       {/* Background Glow Effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -245,7 +249,8 @@ export default function HeroSection() {
 
       {/* Interactive VR Headset Hint */}
       <motion.div
-        className="absolute bottom-10 left-10 hidden lg:block"
+        className="absolute left-10 hidden lg:block"
+        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 2.5rem)' }}
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 2, duration: 0.8 }}

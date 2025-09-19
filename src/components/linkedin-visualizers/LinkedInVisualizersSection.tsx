@@ -51,7 +51,7 @@ export default function LinkedInVisualizersSection() {
 
   if (error) {
     return (
-      <section id="linkedin-visualizers" className="py-20 px-4 sm:px-6 lg:px-8">
+      <section id="linkedin-visualizers" className="section-anchor-offset py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center">
             <motion.div
@@ -284,7 +284,7 @@ export default function LinkedInVisualizersSection() {
   };
 
   return (
-    <section id="linkedin-visualizers" className="py-20 px-4 sm:px-6 lg:px-8">
+    <section id="linkedin-visualizers" className="section-anchor-offset py-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Section Header */}
         <motion.div

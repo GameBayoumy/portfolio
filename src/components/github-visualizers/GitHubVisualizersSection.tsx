@@ -44,7 +44,7 @@ export default function GitHubVisualizersSection() {
 
   if (error) {
     return (
-      <section className="relative py-20 px-4 sm:px-6 lg:px-8" id="github-stats">
+      <section className="section-anchor-offset relative py-20 px-4 sm:px-6 lg:px-8" id="github-stats">
         <div className="max-w-7xl mx-auto text-center">
           <div className="glass-morphism p-8 rounded-xl">
             <Github className="w-12 h-12 text-red-400 mx-auto mb-4" />
@@ -65,7 +65,7 @@ export default function GitHubVisualizersSection() {
   return (
     <section
       ref={ref}
-      className="relative py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-transparent via-slate-900/10 to-transparent"
+      className="section-anchor-offset relative py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-transparent via-slate-900/10 to-transparent"
       id="github-stats"
     >
       <div className="max-w-7xl mx-auto">

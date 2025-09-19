@@ -197,7 +197,7 @@ export default function ContactSection() {
   return (
     <section
       ref={ref}
-      className="relative py-20 px-4 sm:px-6 lg:px-8"
+      className="section-anchor-offset relative py-20 px-4 sm:px-6 lg:px-8"
       id="contact"
     >
       <div className="max-w-6xl mx-auto">

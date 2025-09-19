@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { Home, User, Briefcase, Github, Linkedin as LinkedinIcon, Mail, Menu, X } from 'lucide-react';
 
 
@@ -30,7 +30,10 @@ export default function FloatingNav() {
   const smoothScrollProgress = useSpring(scrollProgress, { stiffness: 120, damping: 20 });
   const topOffset = useMotionValue(24); // px, default top-6
   const smoothTopOffset = useSpring(topOffset, { stiffness: 120, damping: 20 });
+  const safeTopOffset = useTransform(smoothTopOffset, (value) => `calc(env(safe-area-inset-top, 0px) + ${value}px)`);
   const [isScrolled, setIsScrolled] = useState(false);
+  const mobileTriggerTop = 'calc(env(safe-area-inset-top, 0px) + 1rem)';
+  const mobileMenuTop = 'calc(env(safe-area-inset-top, 0px) + 5rem)';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -82,12 +85,16 @@ export default function FloatingNav() {
         className={
           'fixed left-1/2 transform -translate-x-1/2 z-50 hidden md:block transition-all duration-300'
         }
-        style={{ top: smoothTopOffset }}
+        style={{ top: safeTopOffset }}
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.8, ease: 'easeOut' }}
       >
-        <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl px-6 py-3 shadow-2xl">
+        <div
+          className={`backdrop-blur-md rounded-2xl px-6 py-3 shadow-2xl border transition-colors duration-300 ${
+            isScrolled ? 'bg-black/70 border-white/20' : 'bg-black/40 border-white/10'
+          }`}
+        >
           <div className="flex items-center space-x-1">
             {navItems.map((item) => {
               const isActive = activeSection === item.id;
@@ -128,7 +135,8 @@ export default function FloatingNav() {
 
       {/* Mobile Navigation */}
       <motion.div
-        className="fixed top-4 right-4 z-50 md:hidden"
+        className="fixed right-4 z-50 md:hidden"
+        style={{ top: mobileTriggerTop }}
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
@@ -180,7 +188,8 @@ export default function FloatingNav() {
 
             {/* Menu Panel */}
             <motion.div
-              className="fixed top-20 right-4 z-50 md:hidden"
+              className="fixed right-4 z-50 md:hidden"
+              style={{ top: mobileMenuTop }}
               initial={{ scale: 0.8, opacity: 0, y: -20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.8, opacity: 0, y: -20 }}
@@ -256,7 +265,7 @@ export default function FloatingNav() {
       {/* Progress Indicator */}
       <motion.div
         className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500 z-50 origin-left"
-        style={{ scaleX: smoothScrollProgress }}
+        style={{ scaleX: smoothScrollProgress, top: 'env(safe-area-inset-top, 0px)' }}
         initial={{ scaleX: 0 }}
         transition={{ duration: 0.1 }}
       />

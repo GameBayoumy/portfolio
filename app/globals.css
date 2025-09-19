@@ -81,6 +81,10 @@
   .scroll-smooth {
     scroll-behavior: smooth;
   }
+
+  .section-anchor-offset {
+    scroll-margin-top: calc(env(safe-area-inset-top, 0px) + clamp(4rem, 8vw, 6rem));
+  }
   
   /* WebGL Error Fallback */
   .no-webgl {
