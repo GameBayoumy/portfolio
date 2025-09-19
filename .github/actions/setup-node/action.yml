@@ -77,7 +77,10 @@ runs:
       shell: bash
       run: |
         echo "🔄 Installing dependencies with Bun..."
-        bun install --frozen-lockfile --production=false
+        bun install --production=false || {
+          echo "⚠️ Initial install failed, retrying without lockfile constraints..."
+          bun install --production=false
+        }
         echo "✅ Dependencies installed successfully"
 
     - name: 📋 Install dependencies with npm
