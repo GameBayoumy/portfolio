@@ -1,6 +1,6 @@
-const DEFAULT_CONTACT_EMAIL = 'hello@sharifbayoumy.com';
-const DEFAULT_GITHUB_URL = 'https://github.com/sharifbayoumy';
-const DEFAULT_LINKEDIN_URL = 'https://www.linkedin.com/in/sharifbayoumy/';
+const DEFAULT_CONTACT_EMAIL = 'contact@sharifbayoumy.com';
+const DEFAULT_GITHUB_URL = 'https://github.com/GameBayoumy';
+const DEFAULT_LINKEDIN_URL = 'https://www.linkedin.com/in/sharif-bayoumy/';
 
 const contactEmail =
   process.env.NEXT_PUBLIC_CONTACT_EMAIL ??

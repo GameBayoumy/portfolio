@@ -18,7 +18,7 @@ const projects: Project[] = [
     featured: true,
     imageUrl: '/images/projects/vr-eye-tracking.jpg',
     videoUrl: '/videos/vr-eye-tracking-demo.mp4',
-    githubUrl: 'https://github.com/sharifbayoumy/vr-eye-tracking',
+    githubUrl: 'https://github.com/GameBayoumy/vr-eye-tracking',
     achievements: [
       'Achieved 99.2% eye tracking accuracy',
       'Reduced user interaction latency by 45%',
@@ -47,7 +47,7 @@ const projects: Project[] = [
     status: 'completed',
     featured: true,
     demoUrl: 'https://webxr-museum-demo.sharifbayoumy.com',
-    githubUrl: 'https://github.com/sharifbayoumy/webxr-museum',
+    githubUrl: 'https://github.com/GameBayoumy/webxr-museum',
     achievements: [
       'Cross-platform compatibility across devices',
       '50,000+ visitors in first month',
@@ -100,7 +100,7 @@ const projects: Project[] = [
     category: 'game',
     status: 'prototype',
     featured: false,
-    githubUrl: 'https://github.com/sharifbayoumy/vr-game-engine',
+    githubUrl: 'https://github.com/GameBayoumy/vr-game-engine',
     achievements: [
       'Supports 32 concurrent VR players',
       'Sub-20ms network latency optimization',

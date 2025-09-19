@@ -48,7 +48,7 @@ export const experienceData: Experience[] = [
         description: 'Enterprise VR training platform for manufacturing safety protocols',
         technologies: ['Unity 3D', 'Oculus SDK', 'C#', 'PostgreSQL'],
         impact: '40% reduction in workplace incidents for client companies',
-        link: 'https://github.com/sharifbayoumy/virtualtrain-pro',
+        link: 'https://github.com/GameBayoumy/virtualtrain-pro',
       },
       {
         name: 'CollabSpace WebXR',

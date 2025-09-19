@@ -56,7 +56,7 @@ A modern, interactive portfolio showcasing XR (Virtual/Augmented Reality) develo
 
 ```bash
 # Clone the repository
-git clone https://github.com/sharifbayoumy/portfolio.git
+git clone https://github.com/GameBayoumy/portfolio.git
 cd portfolio
 
 # Install dependencies (with legacy peer deps for compatibility)

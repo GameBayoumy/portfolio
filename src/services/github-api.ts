@@ -35,7 +35,7 @@ export type {
 
 class GitHubApiService {
   private readonly baseURL = 'https://api.github.com';
-  private readonly username = 'sharifbayoumy';
+  private readonly username = 'GameBayoumy';
   private cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
 
   private async makeRequest<T>(endpoint: string, ttl = 300000): Promise<T> {
