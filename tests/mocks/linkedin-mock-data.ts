@@ -4,13 +4,14 @@
 
 import { LinkedInProfile, TimelineEvent } from '../../src/types/linkedin';
 import { ProfessionalStats } from '../../src/components/linkedin-visualizers/types';
+import { siteConfig } from '@/config/site';
 
 export const mockLinkedInProfile: LinkedInProfile = {
   personalInfo: {
     name: "Sharif Bayoumy",
     headline: "XR Developer & Computer Scientist",
     location: "Netherlands",
-    profileUrl: "https://www.linkedin.com/in/sharif-bayoumy/",
+    profileUrl: siteConfig.linkedinUrl,
     avatarUrl: "",
     summary: "Passionate XR developer with expertise in virtual and augmented reality technologies. Experienced in Unity, WebXR, Three.js, and cutting-edge spatial computing solutions.",
     connectionCount: 500,

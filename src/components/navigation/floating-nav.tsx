@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { Home, User, Briefcase, Github, Linkedin as LinkedinIcon, Mail, Menu, X } from 'lucide-react';
+import { siteConfig } from '@/config/site';
 
 
 
@@ -232,7 +233,7 @@ export default function FloatingNav() {
                 <div className="mt-4 pt-4 border-t border-white/10">
                   <div className="flex space-x-2">
                     <motion.a
-                      href="https://github.com/GameBayoumy"
+                      href={siteConfig.githubUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-1 flex items-center justify-center p-2 rounded-lg bg-gray-800/50 text-white/70 hover:text-white hover:bg-gray-700/50 transition-colors"
@@ -242,7 +243,7 @@ export default function FloatingNav() {
                       <Github className="w-5 h-5" />
                     </motion.a>
                     <motion.a
-                      href="https://www.linkedin.com/in/sharif-bayoumy/"
+                      href={siteConfig.linkedinUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex-1 flex items-center justify-center p-2 rounded-lg bg-blue-600/20 text-blue-300 hover:text-blue-200 hover:bg-blue-600/30 transition-colors"
@@ -252,7 +253,7 @@ export default function FloatingNav() {
                       <LinkedinIcon className="w-5 h-5" />
                     </motion.a>
                     <motion.a
-                      href="mailto:contact@sharifbayoumy.com"
+                      href={siteConfig.contactMailto}
                       className="flex-1 flex items-center justify-center p-2 rounded-lg bg-pink-600/20 text-pink-300 hover:text-pink-200 hover:bg-pink-600/30 transition-colors"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}

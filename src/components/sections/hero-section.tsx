@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowDown, Github, Linkedin, Mail, ExternalLink } from 'lucide-react';
 import { useInView } from 'react-intersection-observer';
+import { siteConfig } from '@/config/site';
 
 export default function HeroSection() {
   const [mounted, setMounted] = useState(false);
@@ -170,7 +171,7 @@ export default function HeroSection() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => {
-              window.open('mailto:contact@sharifbayoumy.com');
+              window.open(siteConfig.contactMailto);
             }}
           >
             <span className="flex items-center gap-2">
@@ -188,19 +189,19 @@ export default function HeroSection() {
           {[
             {
               icon: Github,
-              href: 'https://github.com/GameBayoumy',
+              href: siteConfig.githubUrl,
               label: 'GitHub',
               color: 'hover:text-white',
             },
             {
               icon: Linkedin,
-              href: 'https://www.linkedin.com/in/sharif-bayoumy/',
+              href: siteConfig.linkedinUrl,
               label: 'LinkedIn',
               color: 'hover:text-blue-400',
             },
             {
               icon: Mail,
-              href: 'mailto:contact@sharifbayoumy.com',
+              href: siteConfig.contactMailto,
               label: 'Email',
               color: 'hover:text-neon-pink',
             },
