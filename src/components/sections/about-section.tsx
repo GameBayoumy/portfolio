@@ -142,7 +142,7 @@ export default function AboutSection() {
   return (
     <section
       ref={ref}
-      className="relative py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-transparent via-slate-900/20 to-transparent"
+      className="section-anchor-offset relative py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-transparent via-slate-900/20 to-transparent"
       id="about"
     >
       <div className="max-w-7xl mx-auto">

@@ -157,7 +157,7 @@ export default function ProjectsSection() {
   return (
     <section
       ref={ref}
-      className="relative py-20 px-4 sm:px-6 lg:px-8"
+      className="section-anchor-offset relative py-20 px-4 sm:px-6 lg:px-8"
       id="projects"
     >
       <div className="max-w-7xl mx-auto">
