@@ -141,6 +141,7 @@ export interface LinkedInAPIResponse<T> {
   success: boolean;
   message?: string;
   lastUpdated: string;
+  source?: 'mock' | 'live';
 }
 
 export interface SearchFilters {

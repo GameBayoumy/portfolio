@@ -1,255 +1,12 @@
-import { LinkedInProfile, ProfessionalStats as LinkedInStats, TimelineEvent, LinkedInAPIResponse } from '../components/linkedin-visualizers/types';
+import {
+  LinkedInProfile,
+  ProfessionalStats as LinkedInStats,
+  TimelineEvent,
+  LinkedInAPIResponse,
+} from '../components/linkedin-visualizers/types';
+import { mockLinkedInApiData } from '../data/mock-linkedin-api';
 
-// Mock LinkedIn data for development and demonstration
-const mockLinkedInData = {
-  profile: {
-    personalInfo: {
-      name: "Sharif Bayoumy",
-      headline: "XR Developer & Computer Scientist",
-      location: "Netherlands",
-      summary: "Passionate XR developer with expertise in virtual and augmented reality technologies. Experienced in Unity, WebXR, Three.js, and cutting-edge spatial computing solutions. Dedicated to pushing the boundaries of immersive technology and creating innovative digital experiences.",
-      connectionCount: 500,
-      followerCount: 1200,
-      industry: "Technology",
-      website: "https://sharifbayoumy.com"
-    },
-    currentPosition: {
-      id: "current-1",
-      title: "Senior XR Developer",
-      company: "Innovation Labs",
-      location: "Netherlands",
-      startDate: "2023-01-01",
-      isCurrent: true,
-      description: "Leading XR development initiatives and creating immersive experiences for enterprise clients.",
-      achievements: [
-        "Developed 5+ VR applications for enterprise training",
-        "Implemented WebXR solutions with 99.9% uptime",
-        "Led team of 6 developers in XR project delivery"
-      ],
-      skills: ["Unity", "WebXR", "Three.js", "C#", "JavaScript", "VR", "AR"],
-      employmentType: "full-time" as const
-    },
-    experience: [
-      {
-        id: "exp-1",
-        title: "XR Developer",
-        company: "Tech Innovations BV",
-        location: "Amsterdam, Netherlands",
-        startDate: "2021-06-01",
-        endDate: "2022-12-31",
-        isCurrent: false,
-        description: "Developed VR and AR applications for various industries including healthcare, education, and entertainment.",
-        achievements: [
-          "Built 10+ VR training modules for healthcare professionals",
-          "Created AR product visualization tools increasing sales by 30%",
-          "Optimized Unity applications reducing load times by 50%"
-        ],
-        skills: ["Unity", "C#", "ARCore", "ARKit", "Oculus SDK"],
-        employmentType: "full-time" as const
-      },
-      {
-        id: "exp-2",
-        title: "Frontend Developer",
-        company: "Digital Solutions",
-        location: "Rotterdam, Netherlands",
-        startDate: "2020-01-01",
-        endDate: "2021-05-31",
-        isCurrent: false,
-        description: "Focused on creating interactive web experiences and 3D visualizations using modern web technologies.",
-        achievements: [
-          "Developed 3D product configurators using Three.js",
-          "Implemented WebGL-based data visualizations",
-          "Improved website performance by 40% through optimization"
-        ],
-        skills: ["JavaScript", "Three.js", "React", "WebGL", "TypeScript"],
-        employmentType: "full-time" as const
-      }
-    ],
-    education: [
-      {
-        id: "edu-1",
-        institution: "University of Technology",
-        degree: "Master of Science",
-        field: "Computer Science",
-        startDate: "2018-09-01",
-        endDate: "2020-08-31",
-        description: "Specialized in Computer Graphics and Human-Computer Interaction"
-      },
-      {
-        id: "edu-2",
-        institution: "Technical College",
-        degree: "Bachelor of Applied Science",
-        field: "Software Engineering",
-        startDate: "2015-09-01",
-        endDate: "2018-07-31"
-      }
-    ],
-    skills: [
-      {
-        id: "skill-1",
-        name: "Unity",
-        category: "technical" as const,
-        level: "expert" as const,
-        endorsements: 45,
-        yearsOfExperience: 5
-      },
-      {
-        id: "skill-2",
-        name: "WebXR",
-        category: "technical" as const,
-        level: "advanced" as const,
-        endorsements: 32,
-        yearsOfExperience: 3
-      },
-      {
-        id: "skill-3",
-        name: "Three.js",
-        category: "technical" as const,
-        level: "expert" as const,
-        endorsements: 38,
-        yearsOfExperience: 4
-      },
-      {
-        id: "skill-4",
-        name: "C#",
-        category: "technical" as const,
-        level: "advanced" as const,
-        endorsements: 41,
-        yearsOfExperience: 5
-      },
-      {
-        id: "skill-5",
-        name: "JavaScript",
-        category: "technical" as const,
-        level: "expert" as const,
-        endorsements: 50,
-        yearsOfExperience: 6
-      },
-      {
-        id: "skill-6",
-        name: "Project Management",
-        category: "professional" as const,
-        level: "advanced" as const,
-        endorsements: 28,
-        yearsOfExperience: 3
-      }
-    ],
-    certifications: [
-      {
-        id: "cert-1",
-        name: "Unity Certified Developer",
-        issuer: "Unity Technologies",
-        issueDate: "2022-03-15",
-        skills: ["Unity", "C#", "Game Development"]
-      },
-      {
-        id: "cert-2",
-        name: "Meta Quest Developer",
-        issuer: "Meta",
-        issueDate: "2023-01-20",
-        skills: ["VR", "Oculus SDK", "Unity"]
-      }
-    ],
-    projects: [
-      {
-        id: "proj-1",
-        name: "VR Training Simulator",
-        description: "Enterprise VR training platform for industrial safety protocols",
-        startDate: "2023-03-01",
-        endDate: "2023-08-31",
-        status: "completed" as const,
-        skills: ["Unity", "VR", "C#", "Networking"]
-      },
-      {
-        id: "proj-2",
-        name: "WebXR Portfolio",
-        description: "Interactive 3D portfolio showcasing XR projects in the browser",
-        startDate: "2023-10-01",
-        status: "in-progress" as const,
-        skills: ["WebXR", "Three.js", "JavaScript", "WebGL"]
-      }
-    ]
-  },
-  stats: {
-    totalExperience: 4,
-    totalPositions: 3,
-    totalCompanies: 3,
-    totalSkills: 25,
-    totalEndorsements: 234,
-    profileViews: 1500,
-    searchAppearances: 85,
-    postImpressions: 12000,
-    connectionGrowth: 15,
-    skillsRanking: {
-      "Unity": 95,
-      "WebXR": 88,
-      "Three.js": 92,
-      "JavaScript": 89
-    },
-    careerGrowthRate: 25,
-    averageTenure: 18
-  },
-  timeline: [
-    {
-      id: "timeline-1",
-      type: "experience" as const,
-      date: "2023-01-01",
-      title: "Senior XR Developer",
-      subtitle: "Innovation Labs",
-      description: "Promoted to senior role, leading XR development initiatives",
-      company: "Innovation Labs",
-      location: "Netherlands",
-      skills: ["Unity", "WebXR", "Team Leadership"],
-      importance: "high" as const,
-      duration: 12
-    },
-    {
-      id: "timeline-2",
-      type: "certification" as const,
-      date: "2023-01-20",
-      title: "Meta Quest Developer Certification",
-      subtitle: "Meta",
-      description: "Achieved certification in VR development for Meta Quest platform",
-      skills: ["VR", "Oculus SDK"],
-      importance: "medium" as const
-    },
-    {
-      id: "timeline-3",
-      type: "project" as const,
-      date: "2023-03-01",
-      title: "VR Training Simulator Launch",
-      subtitle: "Enterprise Project",
-      description: "Successfully delivered VR training platform for industrial clients",
-      skills: ["Unity", "VR", "C#"],
-      importance: "high" as const,
-      duration: 6
-    },
-    {
-      id: "timeline-4",
-      type: "experience" as const,
-      date: "2021-06-01",
-      title: "XR Developer",
-      subtitle: "Tech Innovations BV",
-      description: "Started specializing in XR development and immersive technologies",
-      company: "Tech Innovations BV",
-      location: "Amsterdam",
-      skills: ["Unity", "ARCore", "ARKit"],
-      importance: "high" as const,
-      duration: 18
-    },
-    {
-      id: "timeline-5",
-      type: "education" as const,
-      date: "2020-08-31",
-      title: "Master's Degree Completed",
-      subtitle: "University of Technology",
-      description: "Graduated with M.Sc. in Computer Science, specializing in Computer Graphics",
-      institution: "University of Technology",
-      skills: ["Computer Graphics", "HCI", "Research"],
-      importance: "critical" as const
-    }
-  ]
-};
+const MOCK_DELAY_MS = 1000;
 
 class LinkedInAPIService {
   private baseUrl = process.env.NEXT_PUBLIC_LINKEDIN_API_URL || '/api/linkedin';
@@ -268,32 +25,31 @@ class LinkedInAPIService {
     }
 
     try {
-      // In development, return mock data
-      if (process.env.NODE_ENV === 'development') {
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
-        
+      if (this.shouldUseMockData()) {
+        await new Promise(resolve => setTimeout(resolve, MOCK_DELAY_MS));
+
         let mockResponse: LinkedInAPIResponse<T>;
-        
+
         switch (endpoint) {
           case '/profile':
             mockResponse = {
-              data: mockLinkedInData.profile as T,
+              data: mockLinkedInApiData.profile as T,
               success: true,
-              lastUpdated: new Date().toISOString()
+              lastUpdated: new Date().toISOString(),
             };
             break;
           case '/stats':
             mockResponse = {
-              data: mockLinkedInData.stats as T,
+              data: mockLinkedInApiData.stats as T,
               success: true,
-              lastUpdated: new Date().toISOString()
+              lastUpdated: new Date().toISOString(),
             };
             break;
           case '/timeline':
             mockResponse = {
-              data: mockLinkedInData.timeline as T,
+              data: mockLinkedInApiData.timeline as T,
               success: true,
-              lastUpdated: new Date().toISOString()
+              lastUpdated: new Date().toISOString(),
             };
             break;
           default:
@@ -304,26 +60,43 @@ class LinkedInAPIService {
         return mockResponse;
       }
 
-      // Production API call
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
           ...options?.headers,
         },
+        credentials: 'include',
       });
 
       if (!response.ok) {
         throw new Error(`LinkedIn API error: ${response.status} ${response.statusText}`);
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as LinkedInAPIResponse<T>;
+
+      if (!data.success) {
+        throw new Error(data.message || 'LinkedIn API request failed');
+      }
+
       this.cache.set(cacheKey, { data, timestamp: Date.now() });
       return data;
     } catch (error) {
       console.error('LinkedIn API fetch error:', error);
       throw error;
     }
+  }
+
+  private shouldUseMockData(): boolean {
+    if (process.env.NEXT_PUBLIC_LINKEDIN_FORCE_MOCK === 'true') {
+      return true;
+    }
+
+    if (process.env.NEXT_PUBLIC_LINKEDIN_ENABLE_LIVE === 'true') {
+      return false;
+    }
+
+    return process.env.NODE_ENV === 'development';
   }
 
   async getProfile(): Promise<LinkedInProfile> {
