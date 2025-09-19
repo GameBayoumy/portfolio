@@ -15,6 +15,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import type { ContactFormData } from '@/types';
+import { siteConfig } from '@/config/site';
 
 export default function ContactSection() {
   const [formData, setFormData] = useState<ContactFormData>({
@@ -133,8 +134,8 @@ export default function ContactSection() {
     {
       icon: Mail,
       label: 'Email',
-      value: 'contact@sharifbayoumy.com',
-      link: 'mailto:contact@sharifbayoumy.com',
+      value: siteConfig.contactEmail,
+      link: siteConfig.contactMailto,
       color: 'text-neon-blue',
     },
     {
@@ -155,13 +156,13 @@ export default function ContactSection() {
     {
       icon: Github,
       label: 'GitHub',
-      href: 'https://github.com/GameBayoumy',
+      href: siteConfig.githubUrl,
       color: 'hover:text-white',
     },
     {
       icon: Linkedin,
       label: 'LinkedIn',
-      href: 'https://www.linkedin.com/in/sharif-bayoumy/',
+      href: siteConfig.linkedinUrl,
       color: 'hover:text-blue-400',
     },
     {

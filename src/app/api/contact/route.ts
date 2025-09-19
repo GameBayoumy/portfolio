@@ -142,7 +142,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email service is not configured.' }, { status: 500 });
     }
 
-    const contactEmail = process.env.CONTACT_EMAIL || 'contact@sharifbayoumy.com';
+    const contactEmail = process.env.CONTACT_EMAIL || 'hello@sharifbayoumy.com';
     const fromEmail = process.env.RESEND_FROM_EMAIL || `Sharif Bayoumy <${contactEmail}>`;
     const toEmail = process.env.RESEND_TO_EMAIL || contactEmail;
     const submittedAt = new Date().toUTCString();

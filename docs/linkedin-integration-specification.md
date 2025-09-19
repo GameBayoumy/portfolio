@@ -37,9 +37,9 @@ The portfolio currently features a sophisticated GitHub visualizers section with
 ### Target User Profile
 
 **Name**: Sharif Bayoumy  
-**LinkedIn**: https://www.linkedin.com/in/sharif-bayoumy/  
-**Professional Focus**: XR/VR Developer, Computer Scientist  
-**Contact**: contact@sharifbayoumy.com  
+**LinkedIn**: https://www.linkedin.com/in/sharif-bayoumy/
+**Professional Focus**: XR/VR Developer, Computer Scientist
+**Contact**: contact@sharifbayoumy.com
 
 ## Requirements Analysis
 
@@ -478,7 +478,7 @@ class LinkedInApiService {
 // Static professional data for portfolio display
 export const staticLinkedInData: LinkedInStats = {
   profile: {
-    id: 'sharif-bayoumy',
+    id: 'sharifbayoumy',
     firstName: 'Sharif',
     lastName: 'Bayoumy',
     headline: 'XR/VR Developer | Computer Scientist | Innovation Leader',

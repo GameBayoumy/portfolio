@@ -1,4 +1,4 @@
-// GitHub API Response Types for GameBayoumy Portfolio
+// GitHub API Response Types for Sharif Bayoumy's Portfolio
 
 export interface GitHubUser {
   login: string;

@@ -10,6 +10,7 @@ import EducationTimeline from './education/EducationTimeline';
 import EducationCard from './education/EducationCard';
 import AcademicAchievements from './education/AcademicAchievements';
 import { educationEntries, certifications, academicAchievements } from './education/educationData';
+import { siteConfig } from '@/config/site';
 
 interface Tab {
   id: string;
@@ -378,7 +379,7 @@ export default function LinkedInVisualizersSection() {
           className="text-center mt-16"
         >
           <motion.a
-            href="https://www.linkedin.com/in/sharif-bayoumy/"
+            href={siteConfig.linkedinUrl}
             target="_blank"
             rel="noopener noreferrer"
             whileHover={{ scale: 1.05, y: -5 }}

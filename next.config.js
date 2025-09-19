@@ -66,9 +66,9 @@ const nextConfig = {
     return config;
   },
   env: {
-    CONTACT_EMAIL: 'contact@sharifbayoumy.com',
-    GITHUB_URL: 'https://github.com/GameBayoumy',
-    LINKEDIN_URL: 'https://www.linkedin.com/in/sharif-bayoumy/',
+    CONTACT_EMAIL: process.env.CONTACT_EMAIL || 'hello@sharifbayoumy.com',
+    GITHUB_URL: process.env.GITHUB_URL || 'https://github.com/sharifbayoumy',
+    LINKEDIN_URL: process.env.LINKEDIN_URL || 'https://www.linkedin.com/in/sharifbayoumy/',
   },
   headers: async () => [
     {

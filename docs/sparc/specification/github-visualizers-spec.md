@@ -2,8 +2,8 @@
 
 ## Project Overview
 
-**Target User**: Sharif Bayoumy (@GameBayoumy)  
-**GitHub Profile**: https://github.com/GameBayoumy  
+**Target User**: Sharif Bayoumy (@GameBayoumy)
+**GitHub Profile**: https://github.com/GameBayoumy
 **Integration**: XR Portfolio dynamic section
 
 ## Core Requirements

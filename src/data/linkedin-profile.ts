@@ -1,11 +1,12 @@
 import { LinkedInProfile } from '../types/linkedin';
+import { siteConfig } from '@/config/site';
 
 export const linkedInProfile: LinkedInProfile = {
   personalInfo: {
     name: "Sharif Bayoumy",
     headline: "XR Developer | Virtual Reality Specialist | Immersive Technology Innovator",
     location: "San Francisco Bay Area, California",
-    profileUrl: "https://www.linkedin.com/in/sharif-bayoumy/",
+    profileUrl: siteConfig.linkedinUrl,
     avatarUrl: "/images/profile-avatar.jpg",
     summary: "Passionate XR Developer with 6+ years of experience creating immersive virtual and augmented reality experiences. Specialized in Unity development, WebXR technologies, and cutting-edge spatial computing solutions. Led multiple VR projects from concept to deployment, with expertise in performance optimization and cross-platform compatibility.",
     connectionCount: 1247,

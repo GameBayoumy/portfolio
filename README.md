@@ -56,7 +56,7 @@ A modern, interactive portfolio showcasing XR (Virtual/Augmented Reality) develo
 
 ```bash
 # Clone the repository
-git clone https://github.com/GameBayoumy/portfolio.git
+git clone https://github.com/sharifbayoumy/portfolio.git
 cd portfolio
 
 # Install dependencies (with legacy peer deps for compatibility)
@@ -210,12 +210,12 @@ npm run build
 
 ### Environment Variables
 ```env
-CONTACT_EMAIL=your@email.com
-GITHUB_URL=https://github.com/yourusername
-LINKEDIN_URL=https://linkedin.com/in/yourprofile
+CONTACT_EMAIL=contact@sharifbayoumy.com
+GITHUB_URL=https://github.com/GameBayoumy
+LINKEDIN_URL=https://www.linkedin.com/in/sharif-bayoumy/
 RESEND_API_KEY=your_resend_api_key
-RESEND_FROM_EMAIL="Sharif Bayoumy <contact@yourdomain.com>"
-RESEND_TO_EMAIL=contact@yourdomain.com
+RESEND_FROM_EMAIL="Sharif Bayoumy <contact@sharifbayoumy.com>"
+RESEND_TO_EMAIL=contact@sharifbayoumy.com
 ```
 
 - `RESEND_API_KEY` is required for the contact form and should be generated from your Resend dashboard.
